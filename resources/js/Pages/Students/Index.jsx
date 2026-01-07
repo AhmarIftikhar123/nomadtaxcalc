@@ -1,13 +1,17 @@
-import { usePage } from "@inertiajs/react";
+import { Link } from "@inertiajs/react";
 
-export default function Students() {
-    const { name, father } = usePage().props;
+export default function Students({ users }) {
+    const students = users.data;
+
     return (
         <div>
             <h1>Students</h1>
             <ul>
-                <li>Name {name}</li>
-                <li>Father {father}</li>
+                {students.map((user) => (
+                    <Link href={route("students.show", user.id)}>
+                        {user.name}
+                    </Link>
+                ))}
             </ul>
         </div>
     );

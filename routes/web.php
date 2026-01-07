@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Student\StudentController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -9,9 +10,9 @@ require __DIR__ . '/auth.php';
 
 // {-------------- < Custom Routes > -----------------}
 // Route::inertia('students', 'Students/Index', ['first' => 'Student A', 'second' => 'Student B']);
-Route::get('students/{name?}/{father?}', function ($name = 'Guest', $father = 'User') {
-    return Inertia::render('Students/Index', ['name' => $name, 'father' => $father]);
-});
+Route::resource('students', StudentController::class);
+
+
 Route::fallback(fn() => Inertia::render('Errors/NotFound'));
 // {-------------- </ Custom Routes > -----------------}
 

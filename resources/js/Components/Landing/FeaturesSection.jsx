@@ -1,0 +1,63 @@
+import React from "react";
+import { Globe } from "lucide-react";
+import { Clock4 } from "lucide-react";
+import { Calculator } from "lucide-react";
+export default function FeaturesSection({ features }) {
+    const iconMap = {
+        language: <Globe />,
+        schedule: <Clock4 />,
+        payments: <Calculator />,
+    };
+
+    return (
+        <section
+            id="features"
+            className="w-full bg-white py-20 px-6 md:px-20 lg:px-40"
+        >
+            <div className="max-w-[1200px] mx-auto">
+                {/* Section Header */}
+                <div className="flex flex-col gap-6 mb-16 text-center md:text-left">
+                    <h2 className="text-primary dark:text-white text-3xl md:text-4xl font-black tracking-tight">
+                        Our Key Features
+                    </h2>
+                    <p className="text-gray dark:text-gray-400 text-lg font-normal max-w-[640px]">
+                        Comprehensive tools built specifically to solve the
+                        complexities of the remote workforce and international
+                        tax laws.
+                    </p>
+                </div>
+
+                {/* Features Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {features &&
+                        features.map((feature) => (
+                            <div
+                                key={feature.id}
+                                className="group flex flex-col gap-5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-dark-surface p-8 hover:border-primary dark:hover:border-white transition-all hover:shadow-lg"
+                            >
+                                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary text-white">
+                                    {iconMap[feature.icon] || (
+                                        <svg
+                                            className="w-6 h-6"
+                                            fill="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                                        </svg>
+                                    )}
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <h3 className="text-primary dark:text-white text-xl font-bold leading-tight">
+                                        {feature.title}
+                                    </h3>
+                                    <p className="text-gray dark:text-gray-400 text-sm leading-relaxed">
+                                        {feature.description}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                </div>
+            </div>
+        </section>
+    );
+}

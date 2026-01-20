@@ -1,3 +1,72 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@font-face {
+    font-family: "Clash Grotesk";
+    src: url("../fonts/clash-grotesk/ClashGrotesk-Extralight.woff2")
+        format("woff2");
+    font-weight: 200;
+    font-display: swap;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Clash Grotesk";
+    src: url("../fonts/clash-grotesk/ClashGrotesk-Light.woff2") format("woff2");
+    font-weight: 300;
+    font-display: swap;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Clash Grotesk";
+    src: url("../fonts/clash-grotesk/ClashGrotesk-Regular.woff2")
+        format("woff2");
+    font-weight: 400;
+    font-display: swap;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Clash Grotesk";
+    src: url("../fonts/clash-grotesk/ClashGrotesk-Medium.woff2") format("woff2");
+    font-weight: 500;
+    font-display: swap;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Clash Grotesk";
+    src: url("../fonts/clash-grotesk/ClashGrotesk-Semibold.woff2")
+        format("woff2");
+    font-weight: 600;
+    font-display: swap;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Clash Grotesk";
+    src: url("../fonts/clash-grotesk/ClashGrotesk-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-display: swap;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Clash Grotesk Variable";
+    src: url("../fonts/clash-grotesk/ClashGrotesk-Variable.woff2")
+        format("woff2");
+    font-weight: 200 700;
+    font-display: swap;
+    font-style: normal;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display {
+    font-family: "Plus Jakarta Sans", sans-serif;
+}

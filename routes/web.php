@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LandingPage\LandingPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\StudentController;
 use Illuminate\Foundation\Application;
@@ -9,21 +10,17 @@ use Inertia\Inertia;
 require __DIR__ . '/auth.php';
 
 // {-------------- < Custom Routes > -----------------}
-// Route::inertia('students', 'Students/Index', ['first' => 'Student A', 'second' => 'Student B']);
-Route::resource('students', StudentController::class);
-
-
-Route::fallback(fn() => Inertia::render('Errors/NotFound'));
+Route::get('/', [LandingPageController::class, 'index'])->name('home');
 // {-------------- </ Custom Routes > -----------------}
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+// Route::get('/', function () {
+//     return Inertia::render('Welcome', [
+//         'canLogin' => Route::has('login'),
+//         'canRegister' => Route::has('register'),
+//         'laravelVersion' => Application::VERSION,
+//         'phpVersion' => PHP_VERSION,
+//     ]);
+// });
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');

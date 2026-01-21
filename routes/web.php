@@ -3,6 +3,7 @@
 use App\Http\Controllers\LandingPage\LandingPageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\StudentController;
+use App\Http\Controllers\TaxCalculator\TaxCalculatorController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -11,6 +12,16 @@ require __DIR__ . '/auth.php';
 
 // {-------------- < Custom Routes > -----------------}
 Route::get('/', [LandingPageController::class, 'index'])->name('home');
+
+// Tax Calculator Routes
+Route::prefix('tax-calculator')->group(function () {
+    Route::get('/', [TaxCalculatorController::class, 'index'])->name('tax-calculator.index');
+    Route::get('step-2', [TaxCalculatorController::class, 'step2'])->name('tax-calculator.step-2');
+    Route::post('/step-1', [TaxCalculatorController::class, 'submitStep1'])->name('tax-calculator.step-1');
+    Route::post('/step-2', [TaxCalculatorController::class, 'submitStep2'])->name('tax-calculator.step-2');
+    Route::post('/step-3', [TaxCalculatorController::class, 'submitStep3'])->name('tax-calculator.step-3');
+    Route::get('/result/{id}', [TaxCalculatorController::class, 'result'])->name('tax-calculator.result');
+});
 // {-------------- </ Custom Routes > -----------------}
 
 // Route::get('/', function () {

@@ -21,7 +21,7 @@ export default function Header() {
                 </Link>
 
                 {/* Desktop Navigation */}
-                <nav className="hidden md:flex items-center gap-8">
+                <nav className="hidden md:flex items-center gap-2 lg:gap-8">
                     <Link
                         href="#features"
                         className="text-sm font-semibold text-primary hover:text-gray transition-colors"

@@ -33,4 +33,12 @@ class TaxCalculatorController extends Controller
     {
         return Inertia::render('TaxCalculator/Step2');
     }
+
+    /**
+     * Show the tax calculator step 3
+     */
+    public function step3()
+    {
+        return Inertia::render('TaxCalculator/Step3');
+    }
 }

@@ -9,7 +9,7 @@ export default function HeroSection() {
     }, []);
 
     return (
-        <section className="w-full max-w-[1200px] mx-auto py-2 md:py-16">
+        <section className="w-full max-w-[1200px] mx-auto py-2 px-2">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
                 {/* Left Content */}
                 <div className="flex flex-col gap-6">

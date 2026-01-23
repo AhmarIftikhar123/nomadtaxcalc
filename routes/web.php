@@ -17,6 +17,7 @@ Route::get('/', [LandingPageController::class, 'index'])->name('home');
 Route::prefix('tax-calculator')->group(function () {
     Route::get('/', [TaxCalculatorController::class, 'index'])->name('tax-calculator.index');
     Route::get('step-2', [TaxCalculatorController::class, 'step2'])->name('tax-calculator.step-2');
+    Route::get('step-3', [TaxCalculatorController::class, 'step3'])->name('tax-calculator.step-3');
     Route::post('/step-1', [TaxCalculatorController::class, 'submitStep1'])->name('tax-calculator.step-1');
     Route::post('/step-2', [TaxCalculatorController::class, 'submitStep2'])->name('tax-calculator.step-2');
     Route::post('/step-3', [TaxCalculatorController::class, 'submitStep3'])->name('tax-calculator.step-3');

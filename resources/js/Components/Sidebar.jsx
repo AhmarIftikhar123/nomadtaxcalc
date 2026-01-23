@@ -26,12 +26,12 @@ export default function Sidebar({ user }) {
         {
             icon: Globe,
             label: "Countries",
-            href: route("countries.index"),
+            href: '',
         },
         {
             icon: Settings,
             label: "Settings",
-            href: route("settings.index"),
+            href: '',
         },
     ];
 
@@ -39,7 +39,7 @@ export default function Sidebar({ user }) {
         {
             icon: HelpCircle,
             label: "Help Center",
-            href: route("help"),
+            href: '',
         },
         {
             icon: LogOut,

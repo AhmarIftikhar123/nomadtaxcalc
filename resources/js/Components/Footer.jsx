@@ -27,7 +27,7 @@ export default function Footer() {
                     </div>
                     <form
                         onSubmit={handleSubscribe}
-                        className="flex w-full lg:w-auto gap-3"
+                        className="flex flex-col md:flex-row w-full lg:w-auto gap-3"
                     >
                         <input
                             className="flex-1 lg:w-64 bg-white/10 border-white/20 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-white/30 transition-all outline-none border-none"

@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Zap, MessageSquare, UserCheck, ExternalLink, ChevronDown } from 'lucide-react';
+import React, { useState } from "react";
+import {
+    Zap,
+    MessageSquare,
+    UserCheck,
+    ExternalLink,
+    ChevronDown,
+} from "lucide-react";
 
 export default function SmartRecommendations({ recommendations, currency }) {
     const [expandedIndex, setExpandedIndex] = useState(0);
 
     const formatCurrency = (value) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
             currency: currency,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
@@ -32,14 +38,14 @@ export default function SmartRecommendations({ recommendations, currency }) {
                         key={index}
                         className={`rounded-xl border transition-all cursor-pointer ${
                             expandedIndex === index
-                                ? 'border-primary bg-primary bg-opacity-5'
-                                : 'border-border-gray bg-white'
+                                ? "border-primary bg-primary bg-opacity-5"
+                                : "border-border-gray bg-white"
                         }`}
                     >
                         <button
                             onClick={() =>
                                 setExpandedIndex(
-                                    expandedIndex === index ? -1 : index
+                                    expandedIndex === index ? -1 : index,
                                 )
                             }
                             className="w-full p-6 text-left hover:bg-opacity-50 transition-colors"
@@ -57,23 +63,21 @@ export default function SmartRecommendations({ recommendations, currency }) {
                                             <h4 className="text-lg font-bold text-primary">
                                                 {recommendation.title}
                                             </h4>
-                                            <p className="text-sm text-gray mt-1">
-                                                {recommendation.description}
-                                            </p>
+                                          
                                         </div>
                                         <ChevronDown
                                             className={`w-5 h-5 text-primary flex-shrink-0 mt-1 transition-transform ${
                                                 expandedIndex === index
-                                                    ? 'rotate-180'
-                                                    : ''
+                                                    ? "rotate-180"
+                                                    : ""
                                             }`}
                                         />
                                     </div>
                                     {recommendation.savings && (
                                         <div className="mt-3 inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
-                                            Save{' '}
+                                            Save{" "}
                                             {formatCurrency(
-                                                recommendation.savings
+                                                recommendation.savings,
                                             )}
                                         </div>
                                     )}
@@ -85,29 +89,33 @@ export default function SmartRecommendations({ recommendations, currency }) {
                         {expandedIndex === index && (
                             <div className="border-t border-border-gray px-6 py-4 bg-light">
                                 <p className="text-sm text-gray leading-relaxed mb-4">
-                                    {recommendation.details}
+                                    {recommendation.details ||
+                                        recommendation.message}
                                 </p>
 
-                                <div className="bg-white rounded-lg p-4 mb-4 border border-border-gray">
-                                    <p className="text-xs text-gray uppercase font-bold tracking-wide mb-2">
-                                        Action Items
-                                    </p>
-                                    <ul className="text-sm text-primary space-y-2">
-                                        {recommendation.actionItems?.map(
-                                            (item, idx) => (
-                                                <li
-                                                    key={idx}
-                                                    className="flex gap-2"
-                                                >
-                                                    <span className="text-primary">
-                                                        •
-                                                    </span>
-                                                    <span>{item}</span>
-                                                </li>
-                                            )
-                                        )}
-                                    </ul>
-                                </div>
+                                {recommendation.actionItems &&
+                                    recommendation.actionItems.length > 0 && (
+                                        <div className="bg-white rounded-lg p-4 mb-4 border border-border-gray">
+                                            <p className="text-xs text-gray uppercase font-bold tracking-wide mb-2">
+                                                Action Items
+                                            </p>
+                                            <ul className="text-sm text-primary space-y-2">
+                                                {recommendation.actionItems.map(
+                                                    (item, idx) => (
+                                                        <li
+                                                            key={idx}
+                                                            className="flex gap-2"
+                                                        >
+                                                            <span className="text-primary">
+                                                                •
+                                                            </span>
+                                                            <span>{item}</span>
+                                                        </li>
+                                                    ),
+                                                )}
+                                            </ul>
+                                        </div>
+                                    )}
 
                                 <div className="flex gap-3">
                                     <button className="flex-1 px-4 py-2 bg-primary text-light font-semibold rounded-lg hover:bg-dark transition-colors flex items-center justify-center gap-2">

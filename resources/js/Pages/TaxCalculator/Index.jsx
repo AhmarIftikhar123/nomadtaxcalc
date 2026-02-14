@@ -4,14 +4,14 @@ import React, { useState } from "react";
 import { useForm } from "@inertiajs/react";
 import Footer from "@/Components/Footer";
 import Step1Form from "@/Components/TaxCalculator/Step1Form";
-import Sidebar from "@/Components/Sidebar";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import TopBar from "@/Components/TopBar";
 
 export default function TaxCalculatorIndex({ auth, countries, currencies }) {
     const { data, setData, post, processing, errors } = useForm({
         annual_income: "",
         currency: "USD",
-        country_of_citizenship: "",
+        citizenship_country_id: "",
     });
 
     const isAuthenticated = auth?.user;
@@ -26,59 +26,56 @@ export default function TaxCalculatorIndex({ auth, countries, currencies }) {
     // If user is authenticated, show dashboard layout with sidebar
     if (isAuthenticated) {
         return (
-            <div className="flex h-screen bg-light">
-                {/* Sidebar */}
-                <Sidebar user={auth.user} />
-
-                {/* Main Content */}
-                <div className="flex-1 ml-64 flex flex-col">
-                    {/* Page Content */}
-                    <main className="flex-1 overflow-y-auto">
-                        <div className="max-w-[1200px] mx-auto px-6 md:px-8 py-12">
-                            {/* Progress Section */}
-                            <div className="mb-12">
-                                <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
-                                    Income & Citizenship
-                                </p>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex-1 max-w-xs">
-                                        <div
-                                            className="h-1.5 bg-primary rounded-full"
-                                            style={{ width: "33.33%" }}
-                                        ></div>
-                                    </div>
-                                    <span className="text-sm font-semibold text-primary whitespace-nowrap">
-                                        Step 1 of 3
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Form Card */}
-                            <div className="bg-white rounded-xl border border-border-gray p-8 md:p-12 shadow-sm">
-                                <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
-                                    Let's start with the basics
-                                </h1>
-                                <p className="text-lg text-gray mb-10">
-                                    To accurately estimate your tax liability,
-                                    we need to know your annual earnings and
-                                    your primary country of citizenship.
-                                </p>
-
-                                <form onSubmit={handleSubmit}>
-                                    <Step1Form
-                                        data={data}
-                                        setData={setData}
-                                        errors={errors}
-                                        countries={countries}
-                                        currencies={currencies}
-                                        processing={processing}
-                                    />
-                                </form>
+            <AuthenticatedLayout user={auth.user} title="Tax Calculation">
+                {/* Page Content */}
+                <div className="max-w-[1200px] mx-auto px-6 md:px-8 py-12">
+                    {/* Progress Section */}
+                    <div className="mb-12 flex justify-between items-end">
+                        <div className="flex-1">
+                            <h1 className="text-4xl md:text-5xl font-bold text-primary mb-2">
+                                Income & Citizenship
+                            </h1>
+                            <p className="text-lg text-gray">
+                                Step 1 of 3: Let's start with the basics
+                            </p>
+                        </div>
+                        <div className="text-right w-48">
+                            <p className="text-sm font-bold text-primary mb-2">
+                                0% Completed
+                            </p>
+                            <div className="w-full h-1.5 bg-border-gray rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-primary"
+                                    style={{ width: "0%" }}
+                                ></div>
                             </div>
                         </div>
-                    </main>
+                    </div>
+
+                    {/* Form Card */}
+                    <div className="bg-white rounded-xl border border-border-gray p-8 md:p-12 shadow-sm">
+                        <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
+                            Let's start with the basics
+                        </h1>
+                        <p className="text-lg text-gray mb-10">
+                            To accurately estimate your tax liability, we need
+                            to know your annual earnings and your primary
+                            country of citizenship.
+                        </p>
+
+                        <form onSubmit={handleSubmit}>
+                            <Step1Form
+                                data={data}
+                                setData={setData}
+                                errors={errors}
+                                countries={countries}
+                                currencies={currencies}
+                                processing={processing}
+                            />
+                        </form>
+                    </div>
                 </div>
-            </div>
+            </AuthenticatedLayout>
         );
     }
 
@@ -87,9 +84,7 @@ export default function TaxCalculatorIndex({ auth, countries, currencies }) {
         <>
             {/* <Header /> */}
             {/* Top Bar */}
-            <TopBar
-                title="Tax Calculation Results"
-            />
+            <TopBar title="Tax Calculation Results" />
             <main className="min-h-screen bg-light">
                 <div className="max-w-[1200px] mx-auto px-6 md:px-20 lg:px-40 py-16">
                     {/* Progress Section */}

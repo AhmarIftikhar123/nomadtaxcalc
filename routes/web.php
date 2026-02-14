@@ -16,12 +16,10 @@ Route::get('/', [LandingPageController::class, 'index'])->name('home');
 // Tax Calculator Routes
 Route::prefix('tax-calculator')->group(function () {
     Route::get('/', [TaxCalculatorController::class, 'index'])->name('tax-calculator.index');
-    Route::get('step-2', [TaxCalculatorController::class, 'step2'])->name('tax-calculator.step-2');
-    Route::get('step-3', [TaxCalculatorController::class, 'step3'])->name('tax-calculator.step-3');
-    Route::post('/step-1', [TaxCalculatorController::class, 'submitStep1'])->name('tax-calculator.step-1');
-    Route::post('/step-2', [TaxCalculatorController::class, 'submitStep2'])->name('tax-calculator.step-2');
-    Route::post('/step-3', [TaxCalculatorController::class, 'submitStep3'])->name('tax-calculator.step-3');
-    Route::get('/result/{id}', [TaxCalculatorController::class, 'result'])->name('tax-calculator.result');
+    Route::post('/step-1', [TaxCalculatorController::class, 'storeStep1'])->name('tax-calculator.step-1');
+    Route::get('/step-2', [TaxCalculatorController::class, 'step2'])->name('tax-calculator.step-2');
+    Route::post('/step-2', [TaxCalculatorController::class, 'storeStep2'])->name('tax-calculator.step-2.store');
+    Route::get('/step-3', [TaxCalculatorController::class, 'step3'])->name('tax-calculator.step-3');
 });
 // {-------------- </ Custom Routes > -----------------}
 
@@ -41,5 +39,7 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });

@@ -29,6 +29,7 @@ return new class extends Migration
             $table->decimal('allocated_income', 12, 2)->nullable();
             $table->decimal('taxable_income', 12, 2)->nullable();
             $table->decimal('tax_due', 12, 2)->nullable();
+            $table->json('tax_by_type')->nullable(); // {"income_tax": 5200, "social_security": 1800}
 
             $table->timestamps();
 

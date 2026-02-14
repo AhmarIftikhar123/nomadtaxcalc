@@ -10,35 +10,43 @@ return new class extends Migration
     {
         Schema::create('user_calculations', function (Blueprint $table) {
             $table->id();
-            $table->uuid('session_uuid')->unique(); // Track user sessions
+            $table->uuid('session_uuid')->unique();
+
+            // Step tracking
+            $table->tinyInteger('step_reached')->default(1);
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->boolean('completed_calculation')->default(false);
 
             // Calculation inputs
             $table->foreignId('country_id')->constrained('countries')->onDelete('cascade');
-            $table->string('ip_address', 45)->nullable(); // IPv4 or IPv6
+            $table->string('ip_address', 45)->nullable();
             $table->decimal('gross_income', 12, 2);
-            $table->decimal('deductions', 12, 2)->default(0);
-            $table->json('additional_inputs')->nullable(); // Extra parameters
+            $table->string('currency', 3)->default('USD');
+            $table->string('citizenship_country_code', 2)->nullable();
+            $table->json('additional_inputs')->nullable();
+            $table->json('included_tax_types')->nullable(); // e.g. ["income_tax", "social_security"]
 
             // Results
-            $table->decimal('taxable_income', 12, 2);
-            $table->decimal('total_tax', 12, 2);
-            $table->decimal('net_income', 12, 2);
-            $table->decimal('effective_tax_rate', 5, 2);
-            // For US Citizen + FEIE TAX
-            $table->string('citizenship_country_code', 2)->nullable();
-            $table->boolean('is_us_citizen')->default(false);
-            $table->integer('days_outside_home_country')->nullable();
-            $table->boolean('feie_eligible')->default(false);
-            $table->decimal('feie_excluded_income', 12, 2)->default(0);
+            $table->decimal('taxable_income', 12, 2)->nullable();
+            $table->decimal('total_tax', 12, 2)->nullable();
+            $table->decimal('net_income', 12, 2)->nullable();
+            $table->decimal('effective_tax_rate', 5, 2)->nullable();
+
+            // Detailed result breakdowns (JSON)
+            $table->json('tax_breakdown')->nullable();
+            $table->json('residency_warnings')->nullable();
+            $table->json('treaty_applied')->nullable();
+            $table->json('feie_result')->nullable();
 
             // Metadata
-            $table->string('device_type', 50)->nullable(); // mobile, desktop, tablet
+            $table->string('device_type', 50)->nullable();
             $table->string('referrer', 255)->nullable();
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['country_id', 'created_at']);
+            $table->index(['country_id', 'created_at', 'currency']);
         });
     }
 

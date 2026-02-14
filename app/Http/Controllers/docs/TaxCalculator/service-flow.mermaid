@@ -1,0 +1,133 @@
+```mermaid
+sequenceDiagram
+    participant User
+    participant Controller as TaxCalculatorController
+    participant Orchestrator as TaxCalculatorService
+    participant ResService as ResidencyDeterminationService
+    participant TaxService as TaxCalculationService
+    participant TreatyService as TreatyResolutionService
+    participant FeieService as FeieCalculationService
+    participant RecService as RecommendationService
+    participant DB as Database
+
+    %% Step 1: Initial Input
+    User->>Controller: POST /step-1<br/>{income, currency, citizenship}
+    Controller->>DB: Create/Update user_calculations
+    DB-->>Controller: session_uuid
+    Controller-->>User: Redirect to Step 2
+
+    %% Step 2: Travel History
+    User->>Controller: POST /step-2<br/>{session_uuid, countries[]}
+    Controller->>ResService: determine(countries)
+    
+    loop For each country
+        ResService->>DB: Get country rules<br/>(tax_residency_days, etc)
+        DB-->>ResService: Country data
+        ResService->>ResService: Apply 183-day rule<br/>Apply arrival/departure flags
+        ResService->>ResService: Calculate is_tax_resident
+    end
+    
+    ResService-->>Controller: residencyResults[]
+    Controller->>DB: Save to user_calculation_countries
+    DB-->>Controller: Success
+    Controller-->>User: Redirect to Step 3
+
+    %% Step 3: Tax Calculation
+    User->>Controller: GET /step-3?session_uuid=xxx
+    Controller->>DB: Get user_calculations + countries visited
+    DB-->>Controller: Calculation data
+    
+    Controller->>Orchestrator: calculateTaxes(calculation)
+    
+    %% Orchestration Phase 1: Retrieve Residency
+    Orchestrator->>DB: Get countries visited with residency
+    DB-->>Orchestrator: residencyResults[]
+    
+    %% Orchestration Phase 2: Calculate Tax per Country
+    Orchestrator->>Orchestrator: Filter tax resident countries
+    
+    loop For each tax resident country
+        Orchestrator->>TaxService: calculateForCountry(country, allocatedIncome)
+        TaxService->>DB: Get tax_brackets for country (2026)
+        DB-->>TaxService: brackets[]
+        
+        alt Progressive Tax
+            TaxService->>TaxService: Apply brackets logic<br/>Sum tax across brackets
+        else Flat Tax
+            TaxService->>TaxService: income * flat_rate
+        end
+        
+        TaxService-->>Orchestrator: {taxable_income, tax_due, effective_rate}
+    end
+    
+    Orchestrator->>Orchestrator: Build countryBreakdown[]
+    
+    %% Orchestration Phase 3: Apply Treaties
+    Orchestrator->>TreatyService: applyTreaty(citizenshipId, countryBreakdown)
+    
+    loop For each residence country
+        TreatyService->>DB: Find treaty between<br/>citizenship & residence
+        DB-->>TreatyService: treaty or null
+        
+        alt Treaty found
+            TreatyService->>TreatyService: Apply treaty logic<br/>(credit/exemption/partial)
+            Note over TreatyService: Reduce tax_due based<br/>on treaty type
+        end
+    end
+    
+    TreatyService-->>Orchestrator: {adjustedBreakdown, treatiesApplied}
+    
+    %% Orchestration Phase 4: Check FEIE (US Only)
+    Orchestrator->>FeieService: calculate(citizenshipId, residencyResults, income)
+    
+    alt Is US Citizen
+        FeieService->>FeieService: Count days outside US
+        FeieService->>DB: Get FEIE settings (limit, min_days)
+        DB-->>FeieService: {feie_limit: $126,500, min_days: 330}
+        
+        alt Days outside >= 330
+            FeieService->>FeieService: Calculate excluded income<br/>min(income, $126,500)
+            FeieService-->>Orchestrator: {eligible: true, excluded_income}
+            Orchestrator->>Orchestrator: Adjust US tax based on exclusion
+        else Days outside < 330
+            FeieService-->>Orchestrator: {eligible: false, reason}
+        end
+    else Not US Citizen
+        FeieService-->>Orchestrator: null (not applicable)
+    end
+    
+    %% Orchestration Phase 5: Aggregate Totals
+    Orchestrator->>Orchestrator: totalTax = sum(tax_due)<br/>netIncome = income - totalTax<br/>effectiveRate = (totalTax / income) * 100
+    
+    %% Orchestration Phase 6: Generate Recommendations
+    Orchestrator->>RecService: generate(residencyResults, countryBreakdown, totalTax)
+    
+    RecService->>RecService: Find high-tax countries
+    RecService->>RecService: Check residency proximity
+    RecService->>DB: Get zero-tax countries
+    DB-->>RecService: zeroTaxCountries[]
+    RecService->>RecService: Build recommendations[]
+    
+    RecService-->>Orchestrator: recommendations[]
+    
+    %% Orchestration Phase 7: Generate Warnings
+    Orchestrator->>ResService: generateWarnings(residencyResults)
+    
+    loop For each residency result
+        ResService->>ResService: Check if near threshold<br/>(within 14 days)
+        ResService->>ResService: Check if barely resident<br/>(exceeded by < 14 days)
+    end
+    
+    ResService-->>Orchestrator: residencyWarnings[]
+    
+    %% Orchestration Phase 8: Save & Return
+    Orchestrator->>DB: Update user_calculations<br/>{total_tax, net_income, effective_rate,<br/>tax_breakdown, residency_warnings,<br/>treaty_applied, feie_result,<br/>completed_calculation: true}
+    DB-->>Orchestrator: Success
+    
+    Orchestrator-->>Controller: Comprehensive Results {<br/>annual_income, currency,<br/>total_tax, net_income, effective_rate,<br/>breakdown_by_country,<br/>residency_warnings, residency_data,<br/>comparison_data, treaties_applied,<br/>feie_result, recommendations<br/>}
+    
+    Controller-->>User: Render Step3.jsx with all data
+    
+    %% Frontend Rendering
+    User->>User: Display Results:<br/>- ResultMetricsCards<br/>- ResidencyRiskAlert<br/>- TaxLiabilityComparison<br/>- DetailedTaxBreakdown<br/>- SmartRecommendations
+```

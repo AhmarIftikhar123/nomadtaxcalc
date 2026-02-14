@@ -5,6 +5,8 @@ import PrimaryButton from "@/Components/PrimaryButton";
 import TextInput from "@/Components/TextInput";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -12,6 +14,8 @@ export default function Login({ status, canResetPassword }) {
         password: "",
         remember: false,
     });
+
+    const [showPassword, setShowPassword] = useState(false);
 
     const submit = (e) => {
         e.preventDefault();
@@ -50,17 +54,42 @@ export default function Login({ status, canResetPassword }) {
                 </div>
 
                 <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+                    <div className="flex items-center justify-between">
+                        <InputLabel htmlFor="password" value="Password" />
+                        {canResetPassword && (
+                            <Link
+                                href={route("password.request")}
+                                className="text-xs text-gray underline hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md"
+                            >
+                                Forgot password?
+                            </Link>
+                        )}
+                    </div>
 
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="current-password"
-                        onChange={(e) => setData("password", e.target.value)}
-                    />
+                    <div className="relative">
+                        <TextInput
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            value={data.password}
+                            className="mt-1 block w-full pr-10"
+                            autoComplete="current-password"
+                            onChange={(e) =>
+                                setData("password", e.target.value)
+                            }
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 focus:outline-none mt-1"
+                        >
+                            {showPassword ? (
+                                <EyeOff className="h-5 w-5 text-gray" />
+                            ) : (
+                                <Eye className="h-5 w-5 text-gray" />
+                            )}
+                        </button>
+                    </div>
 
                     <InputError message={errors.password} className="mt-2" />
                 </div>
@@ -80,19 +109,15 @@ export default function Login({ status, canResetPassword }) {
                     </label>
                 </div>
 
-                <div className="mt-4 flex items-center justify-end">
-                    {canResetPassword && (
-                        <Link
-                            href={route("password.request")}
-                            className="rounded-md text-sm text-gray underline hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                        >
-                            Forgot your password?
-                        </Link>
-                    )}
+                <div className="mt-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <Link
+                        href={route("register")}
+                        className="rounded-md text-sm text-gray underline hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    >
+                        Don't have an account? Register
+                    </Link>
 
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Log in
-                    </PrimaryButton>
+                    <PrimaryButton disabled={processing}>Log in</PrimaryButton>
                 </div>
             </form>
         </GuestLayout>

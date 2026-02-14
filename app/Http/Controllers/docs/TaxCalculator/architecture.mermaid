@@ -1,0 +1,116 @@
+```mermaid
+graph TB
+    subgraph "Frontend Layer"
+        A[User Browser] --> B[Step 1: Index.jsx]
+        B --> C[Step1Form Component]
+        C --> D[Step 2: Step2.jsx]
+        D --> E[Step2Form Component]
+        E --> F[ResidencyPeriodItem Component]
+        F --> G[Step 3: Step3.jsx]
+        G --> H[Result Display Components]
+    end
+    
+    subgraph "HTTP Layer"
+        I[Routes: web.php]
+        J[POST /step-1]
+        K[POST /step-2]
+        L[GET /step-3]
+    end
+    
+    subgraph "Controller Layer"
+        M[TaxCalculatorController]
+        N[storeStep1]
+        O[storeStep2]
+        P[showStep3]
+    end
+    
+    subgraph "Service Orchestration"
+        Q[TaxCalculatorService]
+        Q1[getCountries]
+        Q2[saveStep1Data]
+        Q3[saveStep2Data]
+        Q4[calculateTaxes - ORCHESTRATOR]
+    end
+    
+    subgraph "Specialized Services"
+        R1[ResidencyDeterminationService]
+        R2[TaxCalculationService]
+        R3[TreatyResolutionService]
+        R4[FeieCalculationService]
+        R5[RecommendationService]
+    end
+    
+    subgraph "Model Layer"
+        S1[Country Model]
+        S2[TaxBracket Model]
+        S3[TaxTreaty Model]
+        S4[Setting Model]
+        S5[UserCalculation Model]
+        S6[UserCalculationCountry Model]
+    end
+    
+    subgraph "Database Layer"
+        T1[(countries)]
+        T2[(tax_brackets)]
+        T3[(tax_treaties)]
+        T4[(settings)]
+        T5[(user_calculations)]
+        T6[(user_calculation_countries)]
+    end
+    
+    %% Connections: Frontend to Routes
+    C -->|POST| J
+    E -->|POST| K
+    G -->|GET| L
+    
+    %% Connections: Routes to Controller
+    J --> N
+    K --> O
+    L --> P
+    
+    %% Connections: Controller to Service
+    N --> Q2
+    O --> Q3
+    P --> Q4
+    
+    %% Connections: Orchestrator to Specialized Services
+    Q4 --> R1
+    Q4 --> R2
+    Q4 --> R3
+    Q4 --> R4
+    Q4 --> R5
+    
+    %% Connections: Services to Models
+    R1 --> S1
+    R2 --> S1
+    R2 --> S2
+    R3 --> S3
+    R4 --> S4
+    R5 --> S1
+    Q2 --> S5
+    Q3 --> S5
+    Q3 --> S6
+    
+    %% Connections: Models to Database
+    S1 --> T1
+    S2 --> T2
+    S3 --> T3
+    S4 --> T4
+    S5 --> T5
+    S6 --> T6
+    
+    %% Styling
+    classDef frontend fill:#3b82f6,stroke:#1e40af,color:#fff,stroke-width:2px
+    classDef http fill:#8b5cf6,stroke:#6d28d9,color:#fff,stroke-width:2px
+    classDef controller fill:#10b981,stroke:#059669,color:#fff,stroke-width:2px
+    classDef service fill:#f59e0b,stroke:#d97706,color:#fff,stroke-width:2px
+    classDef model fill:#ec4899,stroke:#be185d,color:#fff,stroke-width:2px
+    classDef database fill:#6366f1,stroke:#4338ca,color:#fff,stroke-width:2px
+    
+    class A,B,C,D,E,F,G,H frontend
+    class I,J,K,L http
+    class M,N,O,P controller
+    class Q,Q1,Q2,Q3,Q4,R1,R2,R3,R4,R5 service
+    class S1,S2,S3,S4,S5,S6 model
+    class T1,T2,T3,T4,T5,T6 database
+```

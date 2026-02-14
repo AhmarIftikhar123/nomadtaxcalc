@@ -92,7 +92,7 @@ export default function TaxLiabilityComparison({ comparisonData, currency }) {
             </div>
 
             {/* Legend/Details below chart */}
-            <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {chartData.map((item) => (
                     <div
                         key={item.country}

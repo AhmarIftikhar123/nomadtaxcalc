@@ -67,9 +67,10 @@ export default function Step2Form({
     processing,
     onSubmit,
     onBack,
+    countries = [], // Add countries prop from backend
 }) {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCountry, setSelectedCountry] = useState("");
+    const [selectedCountry, setSelectedCountry] = useState(null);
     const [daysSpent, setDaysSpent] = useState("");
     const [residencyPeriods, setResidencyPeriods] = useState(
         data.residency_periods || [],
@@ -77,12 +78,12 @@ export default function Step2Form({
 
     // Filter countries
     const filteredCountries = useMemo(() => {
-        return COUNTRIES.filter(
+        return countries.filter(
             (c) =>
-                c.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                !residencyPeriods.some((r) => r.country === c),
+                c.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                !residencyPeriods.some((r) => r.country_id === c.id),
         );
-    }, [searchTerm, residencyPeriods]);
+    }, [searchTerm, residencyPeriods, countries]);
 
     // Calculate total days
     const totalDays = useMemo(() => {
@@ -95,6 +96,11 @@ export default function Step2Form({
     const daysRemaining = 365 - totalDays;
     const isYearComplete = totalDays === 365;
     const hasErrors = totalDays > 365;
+
+    const isOverLimit = useMemo(() => {
+        if (!daysSpent) return false;
+        return totalDays + parseInt(daysSpent) > 365;
+    }, [totalDays, daysSpent]);
 
     // Calculate progress percentage
     const progressPercentage = Math.min((totalDays / 365) * 100, 100);
@@ -110,18 +116,21 @@ export default function Step2Form({
 
         const newPeriod = {
             id: Date.now(),
-            country: selectedCountry,
+            country_id: selectedCountry.id,
+            country_name: selectedCountry.name,
+            country_code: selectedCountry.code,
             days: parseInt(daysSpent),
             startMonth: 0,
             endMonth: 11,
             isTaxResident: parseInt(daysSpent) >= 183,
         };
 
-        setResidencyPeriods([...residencyPeriods, newPeriod]);
-        setSelectedCountry("");
+        const updated = [...residencyPeriods, newPeriod];
+        setResidencyPeriods(updated);
+        setSelectedCountry(null);
         setDaysSpent("");
         setSearchTerm("");
-        setData("residency_periods", [...residencyPeriods, newPeriod]);
+        setData("residency_periods", updated);
     };
 
     const handleRemovePeriod = (id) => {
@@ -206,12 +215,16 @@ export default function Step2Form({
                             <input
                                 type="text"
                                 placeholder="Search country..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                value={
+                                    searchTerm || selectedCountry?.name || ""
+                                }
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    if (selectedCountry)
+                                        setSelectedCountry(null);
+                                }}
                                 onFocus={() => {
-                                    if (!selectedCountry) {
-                                        setSearchTerm("");
-                                    }
+                                    // kept empty to allow user to edit
                                 }}
                                 className="w-full pl-10 pr-4 py-3 border border-border-gray rounded-lg text-base font-sans focus:ring-2 focus:ring-primary focus:ring-opacity-50 focus:border-transparent outline-none transition"
                             />
@@ -221,7 +234,7 @@ export default function Step2Form({
                                 <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-border-gray rounded-lg shadow-lg max-h-64 overflow-y-auto z-10">
                                     {filteredCountries.map((country) => (
                                         <button
-                                            key={country}
+                                            key={country.id}
                                             type="button"
                                             onClick={() => {
                                                 setSelectedCountry(country);
@@ -230,19 +243,13 @@ export default function Step2Form({
                                             className="w-full text-left px-4 py-3 hover:bg-light transition border-b border-border-gray last:border-b-0"
                                         >
                                             <p className="font-medium text-primary">
-                                                {country}
+                                                {country.name}
                                             </p>
                                         </button>
                                     ))}
                                 </div>
                             )}
                         </div>
-
-                        {selectedCountry && !searchTerm && (
-                            <div className="mt-2 px-4 py-2 bg-primary bg-opacity-5 border border-primary border-opacity-20 rounded-lg text-sm text-primary font-medium">
-                                Selected: {selectedCountry}
-                            </div>
-                        )}
                     </div>
 
                     {/* Days Spent */}
@@ -254,8 +261,18 @@ export default function Step2Form({
                             onChange={(e) => setDaysSpent(e.target.value)}
                             min="1"
                             max={daysRemaining}
-                            className="w-full px-4 py-3 border border-border-gray rounded-lg text-base font-sans focus:ring-2 focus:ring-primary focus:ring-opacity-50 focus:border-transparent outline-none transition"
+                            className={`w-full px-4 py-3 border rounded-lg text-base font-sans focus:ring-2 focus:ring-opacity-50 focus:border-transparent outline-none transition ${
+                                isOverLimit
+                                    ? "border-red-500 focus:ring-red-500 text-red-600"
+                                    : "border-border-gray focus:ring-primary"
+                            }`}
                         />
+                        {isOverLimit && (
+                            <p className="text-xs text-red-500 mt-1 font-medium">
+                                You cannot add more than {daysRemaining} day
+                                {daysRemaining !== 1 ? "s" : ""}.
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -267,7 +284,7 @@ export default function Step2Form({
                         !selectedCountry ||
                         !daysSpent ||
                         parseInt(daysSpent) <= 0 ||
-                        totalDays + parseInt(daysSpent) > 365
+                        isOverLimit
                     }
                     className="px-6 py-3 bg-light border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-light disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 justify-center"
                 >
@@ -282,7 +299,8 @@ export default function Step2Form({
                     {residencyPeriods.map((period) => (
                         <ResidencyPeriodItem
                             key={period.id}
-                            country={period.country}
+                            country={period.country_name}
+                            country_code={period.country_code}
                             days={period.days}
                             dateRange={`Jan 1 - Dec 31`}
                             isTaxResident={period.isTaxResident}

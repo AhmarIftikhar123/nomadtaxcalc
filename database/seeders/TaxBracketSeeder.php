@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Country;
+use App\Models\TaxBracket;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -9,82 +11,355 @@ class TaxBracketSeeder extends Seeder
 {
     public function run(): void
     {
-        $taxBrackets = [
-            // Portugal - 2026 Tax Brackets
-            ['country_id' => 1, 'min_income' => 0, 'max_income' => 7479, 'tax_rate' => 14.5, 'effective_year' => 2026],
-            ['country_id' => 1, 'min_income' => 7479, 'max_income' => 18894, 'tax_rate' => 23, 'effective_year' => 2026],
-            ['country_id' => 1, 'min_income' => 18894, 'max_income' => 45307, 'tax_rate' => 28.5, 'effective_year' => 2026],
-            ['country_id' => 1, 'min_income' => 45307, 'max_income' => 80882, 'tax_rate' => 37, 'effective_year' => 2026],
-            ['country_id' => 1, 'min_income' => 80882, 'max_income' => null, 'tax_rate' => 45, 'effective_year' => 2026],
+        $taxTypeId = DB::table('tax_types')->where('key', 'income_tax')->value('id');
 
-            // Spain - 2026 Tax Brackets
-            ['country_id' => 2, 'min_income' => 0, 'max_income' => 15000, 'tax_rate' => 19, 'effective_year' => 2026],
-            ['country_id' => 2, 'min_income' => 15000, 'max_income' => 43192, 'tax_rate' => 24, 'effective_year' => 2026],
-            ['country_id' => 2, 'min_income' => 43192, 'max_income' => 130000, 'tax_rate' => 30, 'effective_year' => 2026],
-            ['country_id' => 2, 'min_income' => 130000, 'max_income' => null, 'tax_rate' => 45, 'effective_year' => 2026],
-
-            // US Federal - 2026 Tax Brackets (estimated)
-            ['country_id' => 3, 'min_income' => 0, 'max_income' => 11600, 'tax_rate' => 10, 'effective_year' => 2026],
-            ['country_id' => 3, 'min_income' => 11600, 'max_income' => 47150, 'tax_rate' => 12, 'effective_year' => 2026],
-            ['country_id' => 3, 'min_income' => 47150, 'max_income' => 100525, 'tax_rate' => 22, 'effective_year' => 2026],
-            ['country_id' => 3, 'min_income' => 100525, 'max_income' => 191950, 'tax_rate' => 24, 'effective_year' => 2026],
-            ['country_id' => 3, 'min_income' => 191950, 'max_income' => 243725, 'tax_rate' => 32, 'effective_year' => 2026],
-            ['country_id' => 3, 'min_income' => 243725, 'max_income' => 609350, 'tax_rate' => 35, 'effective_year' => 2026],
-            ['country_id' => 3, 'min_income' => 609350, 'max_income' => null, 'tax_rate' => 37, 'effective_year' => 2026],
-
-            // UK - 2026 Tax Brackets
-            ['country_id' => 4, 'min_income' => 0, 'max_income' => 12570, 'tax_rate' => 0, 'effective_year' => 2026],
-            ['country_id' => 4, 'min_income' => 12570, 'max_income' => 50270, 'tax_rate' => 20, 'effective_year' => 2026],
-            ['country_id' => 4, 'min_income' => 50270, 'max_income' => 125140, 'tax_rate' => 40, 'effective_year' => 2026],
-            ['country_id' => 4, 'min_income' => 125140, 'max_income' => null, 'tax_rate' => 45, 'effective_year' => 2026],
-
-            // Germany - 2026 Tax Brackets
-            ['country_id' => 5, 'min_income' => 0, 'max_income' => 11604, 'tax_rate' => 0, 'effective_year' => 2026],
-            ['country_id' => 5, 'min_income' => 11604, 'max_income' => 48009, 'tax_rate' => 19, 'effective_year' => 2026],
-            ['country_id' => 5, 'min_income' => 48009, 'max_income' => 88956, 'tax_rate' => 31, 'effective_year' => 2026],
-            ['country_id' => 5, 'min_income' => 88956, 'max_income' => 173056, 'tax_rate' => 42, 'effective_year' => 2026],
-            ['country_id' => 5, 'min_income' => 173056, 'max_income' => null, 'tax_rate' => 45, 'effective_year' => 2026],
-
-            // France - 2026 Tax Brackets
-            ['country_id' => 6, 'min_income' => 0, 'max_income' => 11294, 'tax_rate' => 0, 'effective_year' => 2026],
-            ['country_id' => 6, 'min_income' => 11294, 'max_income' => 28797, 'tax_rate' => 11, 'effective_year' => 2026],
-            ['country_id' => 6, 'min_income' => 28797, 'max_income' => 82341, 'tax_rate' => 30, 'effective_year' => 2026],
-            ['country_id' => 6, 'min_income' => 82341, 'max_income' => 177106, 'tax_rate' => 41, 'effective_year' => 2026],
-            ['country_id' => 6, 'min_income' => 177106, 'max_income' => null, 'tax_rate' => 45, 'effective_year' => 2026],
-
-            // Thailand - 2026 Tax Brackets
-            ['country_id' => 7, 'min_income' => 0, 'max_income' => 150000, 'tax_rate' => 5, 'effective_year' => 2026],
-            ['country_id' => 7, 'min_income' => 150000, 'max_income' => 300000, 'tax_rate' => 10, 'effective_year' => 2026],
-            ['country_id' => 7, 'min_income' => 300000, 'max_income' => 500000, 'tax_rate' => 15, 'effective_year' => 2026],
-            ['country_id' => 7, 'min_income' => 500000, 'max_income' => 750000, 'tax_rate' => 20, 'effective_year' => 2026],
-            ['country_id' => 7, 'min_income' => 750000, 'max_income' => 1000000, 'tax_rate' => 25, 'effective_year' => 2026],
-            ['country_id' => 7, 'min_income' => 1000000, 'max_income' => 2000000, 'tax_rate' => 30, 'effective_year' => 2026],
-            ['country_id' => 7, 'min_income' => 2000000, 'max_income' => 5000000, 'tax_rate' => 35, 'effective_year' => 2026],
-            ['country_id' => 7, 'min_income' => 5000000, 'max_income' => null, 'tax_rate' => 37, 'effective_year' => 2026],
-
-            // Mexico - 2026 Tax Brackets
-            ['country_id' => 8, 'min_income' => 0, 'max_income' => 248457, 'tax_rate' => 1.92, 'effective_year' => 2026],
-            ['country_id' => 8, 'min_income' => 248457, 'max_income' => 745357, 'tax_rate' => 6.4, 'effective_year' => 2026],
-            ['country_id' => 8, 'min_income' => 745357, 'max_income' => 1620000, 'tax_rate' => 10.88, 'effective_year' => 2026],
-            ['country_id' => 8, 'min_income' => 1620000, 'max_income' => 2490000, 'tax_rate' => 16, 'effective_year' => 2026],
-            ['country_id' => 8, 'min_income' => 2490000, 'max_income' => 3108000, 'tax_rate' => 19.52, 'effective_year' => 2026],
-            ['country_id' => 8, 'min_income' => 3108000, 'max_income' => null, 'tax_rate' => 35, 'effective_year' => 2026],
-
-            // UAE - 0% Tax (no brackets needed, but included for completeness)
-            ['country_id' => 9, 'min_income' => 0, 'max_income' => null, 'tax_rate' => 0, 'effective_year' => 2026],
-
-            // Singapore - 2026 Tax Brackets
-            ['country_id' => 10, 'min_income' => 0, 'max_income' => 20000, 'tax_rate' => 0, 'effective_year' => 2026],
-            ['country_id' => 10, 'min_income' => 20000, 'max_income' => 30000, 'tax_rate' => 2, 'effective_year' => 2026],
-            ['country_id' => 10, 'min_income' => 30000, 'max_income' => 40000, 'tax_rate' => 3.5, 'effective_year' => 2026],
-            ['country_id' => 10, 'min_income' => 40000, 'max_income' => 80000, 'tax_rate' => 7, 'effective_year' => 2026],
-            ['country_id' => 10, 'min_income' => 80000, 'max_income' => 120000, 'tax_rate' => 11.5, 'effective_year' => 2026],
-            ['country_id' => 10, 'min_income' => 120000, 'max_income' => 160000, 'tax_rate' => 15, 'effective_year' => 2026],
-            ['country_id' => 10, 'min_income' => 160000, 'max_income' => 200000, 'tax_rate' => 18, 'effective_year' => 2026],
-            ['country_id' => 10, 'min_income' => 200000, 'max_income' => 320000, 'tax_rate' => 19, 'effective_year' => 2026],
-            ['country_id' => 10, 'min_income' => 320000, 'max_income' => null, 'tax_rate' => 22, 'effective_year' => 2026],
+        // Map ISO codes to bracket arrays: [min, max, rate]
+        // All 2026 authentic data from PwC, KPMG, gov sources
+        $allBrackets = [
+            // -- USA (Federal 2026) --
+            'US' => [
+                [0, 11925, 10.00],
+                [11925, 48475, 12.00],
+                [48475, 103350, 22.00],
+                [103350, 197300, 24.00],
+                [197300, 250525, 32.00],
+                [250525, 626350, 35.00],
+                [626350, null, 37.00],
+            ],
+            // -- UK (2026/27) --
+            'GB' => [
+                [0, 12570, 0.00],
+                [12570, 50270, 20.00],
+                [50270, 125140, 40.00],
+                [125140, null, 45.00],
+            ],
+            // -- Portugal (2026) --
+            'PT' => [
+                [0, 8342, 12.50],
+                [8342, 12575, 15.70],
+                [12575, 17820, 21.20],
+                [17820, 23065, 24.10],
+                [23065, 29367, 31.10],
+                [29367, 42996, 34.60],
+                [42996, 46470, 43.10],
+                [46470, 86634, 44.60],
+                [86634, null, 48.00],
+            ],
+            // -- Spain (2026 state + general regional avg) --
+            'ES' => [
+                [0, 12450, 19.00],
+                [12450, 20200, 24.00],
+                [20200, 35200, 30.00],
+                [35200, 60000, 37.00],
+                [60000, 300000, 45.00],
+                [300000, null, 47.00],
+            ],
+            // -- Germany (2026) --
+            'DE' => [
+                [0, 12348, 0.00],
+                [12348, 17473, 14.00],
+                [17473, 67896, 24.00],
+                [67896, 277826, 42.00],
+                [277826, null, 45.00],
+            ],
+            // -- France (2026) --
+            'FR' => [
+                [0, 11497, 0.00],
+                [11497, 29315, 11.00],
+                [29315, 83823, 30.00],
+                [83823, 180294, 41.00],
+                [180294, null, 45.00],
+            ],
+            // -- Thailand (2026) --
+            'TH' => [
+                [0, 150000, 0.00],
+                [150000, 300000, 5.00],
+                [300000, 500000, 10.00],
+                [500000, 750000, 15.00],
+                [750000, 1000000, 20.00],
+                [1000000, 2000000, 25.00],
+                [2000000, 5000000, 30.00],
+                [5000000, null, 35.00],
+            ],
+            // -- Mexico (2026 annual ISR) --
+            'MX' => [
+                [0, 10135.11, 1.92],
+                [10135.12, 86022.11, 6.40],
+                [86022.12, 151176.19, 10.88],
+                [151176.20, 175735.66, 16.00],
+                [175735.67, 210403.69, 17.92],
+                [210403.70, 424353.97, 21.36],
+                [424353.98, 668840.14, 23.52],
+                [668840.15, 1276925.98, 30.00],
+                [1276925.99, 1702567.97, 32.00],
+                [1702567.98, 5107703.92, 34.00],
+                [5107703.93, null, 35.00],
+            ],
+            // -- UAE: No income tax --
+            // -- Singapore (YA2026) --
+            'SG' => [
+                [0, 20000, 0.00],
+                [20000, 30000, 2.00],
+                [30000, 40000, 3.50],
+                [40000, 80000, 7.00],
+                [80000, 120000, 11.50],
+                [120000, 160000, 15.00],
+                [160000, 200000, 18.00],
+                [200000, 240000, 19.00],
+                [240000, 280000, 19.50],
+                [280000, 320000, 20.00],
+                [320000, 500000, 22.00],
+                [500000, 1000000, 23.00],
+                [1000000, null, 24.00],
+            ],
+            // -- Estonia (2026 flat) --
+            'EE' => [
+                [0, 7849, 0.00],
+                [7849, null, 24.00],
+            ],
+            // -- Croatia (2026 default) --
+            'HR' => [
+                [0, 60000, 20.00],
+                [60000, null, 30.00],
+            ],
+            // -- Greece (2026) --
+            'GR' => [
+                [0, 10000, 9.00],
+                [10000, 20000, 20.00],
+                [20000, 30000, 26.00],
+                [30000, 40000, 34.00],
+                [40000, 60000, 39.00],
+                [60000, null, 44.00],
+            ],
+            // -- Italy (IRPEF 2026) --
+            'IT' => [
+                [0, 28000, 23.00],
+                [28000, 50000, 33.00],
+                [50000, null, 43.00],
+            ],
+            // -- Netherlands (2026 Box 1) --
+            'NL' => [
+                [0, 38000, 35.70],
+                [38000, 79000, 37.50],
+                [79000, null, 49.50],
+            ],
+            // -- Japan (2026 national) --
+            'JP' => [
+                [0, 1950000, 5.00],
+                [1950000, 3300000, 10.00],
+                [3300000, 6950000, 20.00],
+                [6950000, 9000000, 23.00],
+                [9000000, 18000000, 33.00],
+                [18000000, 40000000, 40.00],
+                [40000000, null, 45.00],
+            ],
+            // -- Canada (2026 federal) --
+            'CA' => [
+                [0, 58523, 14.00],
+                [58523, 117045, 20.50],
+                [117045, 181440, 26.00],
+                [181440, 258482, 29.00],
+                [258482, null, 33.00],
+            ],
+            // -- Australia (2025-26 FY) --
+            'AU' => [
+                [0, 18200, 0.00],
+                [18200, 45000, 16.00],
+                [45000, 135000, 30.00],
+                [135000, 190000, 37.00],
+                [190000, null, 45.00],
+            ],
+            // -- South Korea (2026) --
+            'KR' => [
+                [0, 14000000, 6.00],
+                [14000000, 50000000, 15.00],
+                [50000000, 88000000, 24.00],
+                [88000000, 150000000, 35.00],
+                [150000000, 300000000, 38.00],
+                [300000000, 500000000, 40.00],
+                [500000000, 1000000000, 42.00],
+                [1000000000, null, 45.00],
+            ],
+            // -- Brazil (2026 monthly) --
+            'BR' => [
+                [0, 5000, 0.00],
+                [5000, 7350, 7.50],
+                [7350, null, 27.50],
+            ],
+            // -- Colombia (2026) --
+            'CO' => [
+                [0, 1090, 0.00],
+                [1090, 1700, 19.00],
+                [1700, 4100, 28.00],
+                [4100, 8670, 33.00],
+                [8670, 18970, 35.00],
+                [18970, 31000, 37.00],
+                [31000, null, 39.00],
+            ],
+            // -- Indonesia (2026) --
+            'ID' => [
+                [0, 60000000, 5.00],
+                [60000000, 250000000, 15.00],
+                [250000000, 500000000, 25.00],
+                [500000000, 5000000000, 30.00],
+                [5000000000, null, 35.00],
+            ],
+            // -- Malaysia (YA2026) --
+            'MY' => [
+                [0, 5000, 0.00],
+                [5000, 20000, 1.00],
+                [20000, 35000, 3.00],
+                [35000, 50000, 6.00],
+                [50000, 70000, 11.00],
+                [70000, 100000, 19.00],
+                [100000, 400000, 25.00],
+                [400000, 600000, 26.00],
+                [600000, 2000000, 28.00],
+                [2000000, null, 30.00],
+            ],
+            // -- Czech Republic (2026) --
+            'CZ' => [
+                [0, 1762812, 15.00],
+                [1762812, null, 23.00],
+            ],
+            // -- Hungary (flat 15%) --
+            'HU' => [
+                [0, null, 15.00],
+            ],
+            // -- Poland (2026) --
+            'PL' => [
+                [0, 30000, 0.00],
+                [30000, 120000, 12.00],
+                [120000, null, 32.00],
+            ],
+            // -- Romania (flat 10%) --
+            'RO' => [
+                [0, null, 10.00],
+            ],
+            // -- Bulgaria (flat 10%) --
+            'BG' => [
+                [0, null, 10.00],
+            ],
+            // -- Switzerland (2026 federal only) --
+            'CH' => [
+                [0, 17800, 0.00],
+                [17800, 31600, 0.77],
+                [31600, 41400, 0.88],
+                [41400, 55200, 2.64],
+                [55200, 72500, 2.97],
+                [72500, 78100, 5.94],
+                [78100, 103600, 6.60],
+                [103600, 134600, 8.80],
+                [134600, 176000, 11.00],
+                [176000, 755200, 13.20],
+                [755200, null, 13.20],
+            ],
+            // -- Austria (2026) --
+            'AT' => [
+                [0, 13541, 0.00],
+                [13541, 22261, 20.00],
+                [22261, 35837, 30.00],
+                [35837, 69166, 40.00],
+                [69166, 103072, 48.00],
+                [103072, 1000000, 50.00],
+                [1000000, null, 55.00],
+            ],
+            // -- Ireland (2026) --
+            'IE' => [
+                [0, 44000, 20.00],
+                [44000, null, 40.00],
+            ],
+            // -- Sweden (2026 — municipal avg + state) --
+            'SE' => [
+                [0, 643000, 32.40],
+                [643000, null, 52.40],
+            ],
+            // -- Costa Rica (2026 salaried monthly) --
+            'CR' => [
+                [0, 918000, 0.00],
+                [918000, 1347000, 10.00],
+                [1347000, 2372000, 15.00],
+                [2372000, 4727000, 20.00],
+                [4727000, null, 25.00],
+            ],
+            // -- Panama (2026) --
+            'PA' => [
+                [0, 11000, 0.00],
+                [11000, 50000, 15.00],
+                [50000, null, 25.00],
+            ],
+            // -- Georgia (flat 20%) --
+            'GE' => [
+                [0, null, 20.00],
+            ],
+            // -- Malta (2026 single) --
+            'MT' => [
+                [0, 9100, 0.00],
+                [9100, 14500, 15.00],
+                [14500, 19500, 25.00],
+                [19500, 60000, 25.00],
+                [60000, null, 35.00],
+            ],
+            // -- Cyprus (2026) --
+            'CY' => [
+                [0, 19500, 0.00],
+                [19500, 28000, 20.00],
+                [28000, 36300, 25.00],
+                [36300, 60000, 30.00],
+                [60000, null, 35.00],
+            ],
+            // -- Philippines (2026) --
+            'PH' => [
+                [0, 250000, 0.00],
+                [250000, 400000, 15.00],
+                [400000, 800000, 20.00],
+                [800000, 2000000, 25.00],
+                [2000000, 8000000, 30.00],
+                [8000000, null, 35.00],
+            ],
+            // -- Vietnam (2026 monthly) --
+            'VN' => [
+                [0, 5000000, 5.00],
+                [5000000, 10000000, 10.00],
+                [10000000, 18000000, 15.00],
+                [18000000, 32000000, 20.00],
+                [32000000, 52000000, 25.00],
+                [52000000, 80000000, 30.00],
+                [80000000, null, 35.00],
+            ],
+            // -- Barbados (2026) --
+            'BB' => [
+                [0, 50000, 12.50],
+                [50000, null, 28.50],
+            ],
         ];
 
-        DB::table('tax_brackets')->insert($taxBrackets);
+        $records = [];
+
+        foreach ($allBrackets as $isoCode => $brackets) {
+            $countryId = DB::table('countries')->where('iso_code', $isoCode)->value('id');
+            if (!$countryId) continue;
+
+            foreach ($brackets as $bracket) {
+                $records[] = [
+                    'country_id'  => $countryId,
+                    'tax_type_id' => $taxTypeId,
+                    'tax_year'    => 2026,
+                    'min_income'  => $bracket[0],
+                    'max_income'  => $bracket[1],
+                    'rate'        => $bracket[2],
+                    'has_cap'     => false,
+                    'annual_cap'  => null,
+                    'is_active'   => true,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ];
+            }
+        }
+
+        // Insert in chunks to avoid memory issues
+        foreach (array_chunk($records, 50) as $chunk) {
+            DB::table('tax_brackets')->insert($chunk);
+        }
     }
 }

@@ -5,39 +5,26 @@ import { DollarSign, Globe, Briefcase } from "lucide-react";
 
 export default function Form1Summary({ formData }) {
     const formatCurrency = (value, currency) => {
-        const formatter = new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: currency,
-            minimumFractionDigits: 0,
-        }); 
-        return formatter.format(value);
+        try {
+            const formatter = new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: currency,
+                minimumFractionDigits: 0,
+            });
+            return formatter.format(value);
+        } catch {
+            return `${currency} ${Number(value).toLocaleString()}`;
+        }
     };
 
-    const getCountryCode = (countryName) => {
-        const countryMap = {
-            "United States": "US",
-            "United Kingdom": "GB",
-            Canada: "CA",
-            Australia: "AU",
-            Germany: "DE",
-            France: "FR",
-            Spain: "ES",
-            Italy: "IT",
-            Netherlands: "NL",
-            Belgium: "BE",
-            Switzerland: "CH",
-            Sweden: "SE",
-            Norway: "NO",
-            Denmark: "DK",
-            Portugal: "PT",
-            Thailand: "TH",
-            Mexico: "MX",
-            India: "IN",
-            Japan: "JP",
-            Singapore: "SG",
-        };
-        return countryMap[countryName] || "US";
-    };
+    // Use ISO code directly from backend (no manual lookup needed)
+    const countryCode = (
+        formData.citizenship_country_code || "US"
+    ).toUpperCase();
+    const countryName =
+        formData.citizenship_country_name ||
+        formData.country_of_citizenship ||
+        "Unknown";
 
     return (
         <div className="bg-white rounded-xl border border-border-gray p-6 md:p-8 shadow-sm mb-8">
@@ -85,11 +72,11 @@ export default function Form1Summary({ formData }) {
                 {/* Country of Citizenship */}
                 <div className="flex items-start gap-4">
                     <img
-                        src={`https://cdn.jsdelivr.net/npm/country-flag-emoji-json@0.1.0/dist/images/${getCountryCode(formData.country_of_citizenship)}.svg`}
-                        alt={formData.country_of_citizenship}
-                        className="w-12 h-12 rounded-lg"
+                        src={`https://flagcdn.com/w80/${countryCode.toLowerCase()}.png`}
+                        alt={countryName}
+                        className="w-12 h-12 rounded-lg object-cover"
                         onError={(e) => {
-                            e.target.src = `https://flagcdn.com/w40/${getCountryCode(formData.country_of_citizenship).toLowerCase()}.png`;
+                            e.target.style.display = "none";
                         }}
                     />
                     <div>
@@ -97,7 +84,7 @@ export default function Form1Summary({ formData }) {
                             Country of Citizenship
                         </p>
                         <p className="text-lg font-bold text-primary">
-                            {formData.country_of_citizenship}
+                            {countryName}
                         </p>
                     </div>
                 </div>

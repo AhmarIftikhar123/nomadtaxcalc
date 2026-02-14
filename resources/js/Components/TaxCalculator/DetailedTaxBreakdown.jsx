@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Download, Eye } from 'lucide-react';
+import React from "react";
+import { Download, Eye } from "lucide-react";
 
 export default function DetailedTaxBreakdown({ breakdownData, currency }) {
     const formatCurrency = (value) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
             currency: currency,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
@@ -15,30 +15,30 @@ export default function DetailedTaxBreakdown({ breakdownData, currency }) {
 
     const handleDownloadCSV = () => {
         const headers = [
-            'Country',
-            'Income Source',
-            'Taxable Amount',
-            'Tax Rate',
-            'Liability',
+            "Country",
+            "Income Source",
+            "Taxable Amount",
+            "Tax Rate",
+            "Liability",
         ];
         const rows = breakdownData.map((item) => [
-            item.country,
-            item.incomeSource,
-            formatCurrency(item.taxableAmount),
-            `${item.taxRate}%`,
-            formatCurrency(item.liability),
+            item.country_name,
+            "Global Income",
+            formatCurrency(item.taxable_income),
+            `${item.effective_rate}%`,
+            formatCurrency(item.tax_due),
         ]);
 
         const csvContent = [
-            headers.join(','),
-            ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
-        ].join('\n');
+            headers.join(","),
+            ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+        ].join("\n");
 
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const blob = new Blob([csvContent], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
+        const link = document.createElement("a");
         link.href = url;
-        link.download = 'tax-breakdown.csv';
+        link.download = "tax-breakdown.csv";
         link.click();
         window.URL.revokeObjectURL(url);
     };
@@ -89,30 +89,24 @@ export default function DetailedTaxBreakdown({ breakdownData, currency }) {
                             >
                                 <td className="py-4 px-4">
                                     <div className="flex items-center gap-3">
-                                        {item.flag && (
-                                            <img
-                                                src={item.flag || "/placeholder.svg"}
-                                                alt={item.country}
-                                                className="w-6 h-6 rounded"
-                                            />
-                                        )}
+                                        {/* Flag handled by backend or CSS class if available, omitted for now */}
                                         <span className="font-medium text-primary">
-                                            {item.country}
+                                            {item.country_name}
                                         </span>
                                     </div>
                                 </td>
                                 <td className="py-4 px-4 text-gray text-sm">
-                                    {item.incomeSource}
+                                    Global Income
                                 </td>
                                 <td className="py-4 px-4 text-right text-primary font-medium">
-                                    {formatCurrency(item.taxableAmount)}
+                                    {formatCurrency(item.taxable_income)}
                                 </td>
                                 <td className="py-4 px-4 text-right text-primary font-medium">
-                                    {item.taxRate}%
+                                    {item.effective_rate}%
                                 </td>
                                 <td className="py-4 px-4 text-right">
                                     <span className="font-bold text-primary bg-primary bg-opacity-10 px-3 py-1 rounded-lg">
-                                        {formatCurrency(item.liability)}
+                                        {formatCurrency(item.tax_due)}
                                     </span>
                                 </td>
                             </tr>
@@ -131,9 +125,9 @@ export default function DetailedTaxBreakdown({ breakdownData, currency }) {
                                     {formatCurrency(
                                         breakdownData.reduce(
                                             (sum, item) =>
-                                                sum + item.liability,
-                                            0
-                                        )
+                                                sum + Number(item.tax_due),
+                                            0,
+                                        ),
                                     )}
                                 </span>
                             </td>

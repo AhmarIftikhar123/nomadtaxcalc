@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { DollarSign, Globe, Briefcase } from "lucide-react";
+import { DollarSign, Globe, Briefcase, Calendar } from "lucide-react";
 
 export default function Form1Summary({ formData }) {
     const formatCurrency = (value, currency) => {
@@ -33,7 +33,7 @@ export default function Form1Summary({ formData }) {
                 Your Information from Step 1
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Annual Gross Income */}
                 <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-primary bg-opacity-10 rounded-lg flex items-center justify-center">
@@ -85,6 +85,21 @@ export default function Form1Summary({ formData }) {
                         </p>
                         <p className="text-lg font-bold text-primary">
                             {countryName}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Tax Year */}
+                <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-primary bg-opacity-10 rounded-lg flex items-center justify-center">
+                        <Calendar className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray font-medium mb-1">
+                            Tax Year
+                        </p>
+                        <p className="text-lg font-bold text-primary">
+                            {formData.tax_year || 2026}
                         </p>
                     </div>
                 </div>

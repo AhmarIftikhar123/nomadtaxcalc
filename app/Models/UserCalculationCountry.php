@@ -12,17 +12,22 @@ class UserCalculationCountry extends Model
     protected $fillable = [
         'user_calculation_id',
         'country_id',
+        'state_id',
         'days_spent',
         'is_tax_resident',
         'allocated_income',
         'taxable_income',
         'tax_due',
         'tax_by_type',
+        'selected_tax_type_ids',
+        'tax_type_overrides',
     ];
 
     protected $casts = [
-        'is_tax_resident' => 'boolean',
-        'tax_by_type'     => 'array',
+        'is_tax_resident'       => 'boolean',
+        'tax_by_type'           => 'array',
+        'selected_tax_type_ids' => 'array',
+        'tax_type_overrides'    => 'array',
     ];
 
     /**
@@ -39,5 +44,13 @@ class UserCalculationCountry extends Model
     public function country()
     {
         return $this->belongsTo(Country::class);
+    }
+
+    /**
+     * Get the state
+     */
+    public function state()
+    {
+        return $this->belongsTo(State::class);
     }
 }

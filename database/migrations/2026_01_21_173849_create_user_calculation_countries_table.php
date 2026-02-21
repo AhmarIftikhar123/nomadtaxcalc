@@ -22,6 +22,11 @@ return new class extends Migration
                 ->constrained('countries')
                 ->onDelete('cascade');
 
+            $table->foreignId('state_id')
+                ->nullable()
+                ->constrained('states')
+                ->nullOnDelete();
+
             $table->integer('days_spent');
             $table->boolean('is_tax_resident')->default(false);
 

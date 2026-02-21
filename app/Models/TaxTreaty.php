@@ -38,12 +38,14 @@ class TaxTreaty extends Model
         return $query->where('is_active', true);
     }
 
-    public function scopeBetween($query, $country1Id, $country2Id)
+    public function scopeBetween($query, $countryOneId, $countryTwoId)
     {
-        return $query->where(function ($q) use ($country1Id, $country2Id) {
-            $q->where('country_a_id', $country1Id)->where('country_b_id', $country2Id);
-        })->orWhere(function ($q) use ($country1Id, $country2Id) {
-            $q->where('country_a_id', $country2Id)->where('country_b_id', $country1Id);
+        return $query->where(function ($q) use ($countryOneId, $countryTwoId) {
+            $q->where('country_a_id', $countryOneId)
+                ->where('country_b_id', $countryTwoId);
+        })->orWhere(function ($q) use ($countryOneId, $countryTwoId) {
+            $q->where('country_a_id', $countryTwoId)
+                ->where('country_b_id', $countryOneId);
         });
     }
 }

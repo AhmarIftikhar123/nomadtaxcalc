@@ -11,6 +11,7 @@ class TaxBracket extends Model
 
     protected $fillable = [
         'country_id',
+        'state_id',
         'tax_type_id',
         'tax_year',
         'min_income',
@@ -33,6 +34,11 @@ class TaxBracket extends Model
     public function country()
     {
         return $this->belongsTo(Country::class);
+    }
+
+    public function state()
+    {
+        return $this->belongsTo(State::class);
     }
 
     public function taxType()

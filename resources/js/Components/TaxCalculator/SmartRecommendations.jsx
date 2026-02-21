@@ -36,7 +36,7 @@ export default function SmartRecommendations({ recommendations, currency }) {
                 {recommendations.map((recommendation, index) => (
                     <div
                         key={index}
-                        className={`rounded-xl border transition-all cursor-pointer ${
+                        className={`rounded-xl overflow-hidden border transition-all cursor-pointer ${
                             expandedIndex === index
                                 ? "border-primary bg-primary bg-opacity-5"
                                 : "border-border-gray bg-white"

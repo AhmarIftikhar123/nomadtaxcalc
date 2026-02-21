@@ -1,0 +1,220 @@
+# Tax Calculator Feature Tests — Implementation Plan
+
+Complete feature test coverage for the Tax Calculator module, testing all controller routes and service logic using Pest PHP.
+
+## User Review Required
+
+> [!IMPORTANT]
+> The [UserCalculationCountry](file:///c:/xampp/htdocs/inertia/app/Models/UserCalculationCountry.php#8-44) model is missing `selected_tax_type_ids` and `tax_type_overrides` from both `$fillable` and `$casts`. The `TaxCalculatorService::saveStep2Data()` method writes to these fields, so they silently fail. This fix is required before tests will pass.
+
+> [!WARNING]
+> Tests will use `RefreshDatabase`, which **wipes the DB before each test**. Make sure you are not running these against a production database (standard Laravel practice).
+
+---
+
+## Proposed Changes
+
+### 1. Model Fix — [UserCalculationCountry](file:///c:/xampp/htdocs/inertia/app/Models/UserCalculationCountry.php#8-44)
+
+#### [MODIFY] [UserCalculationCountry.php](file:///c:/xampp/htdocs/inertia/app/Models/UserCalculationCountry.php)
+
+Add `selected_tax_type_ids` and `tax_type_overrides` to `$fillable` and `$casts`:
+
+```diff
+ protected $fillable = [
+     'user_calculation_id',
+     'country_id',
+     'days_spent',
+     'is_tax_resident',
+     'allocated_income',
+     'taxable_income',
+     'tax_due',
+     'tax_by_type',
++    'selected_tax_type_ids',
++    'tax_type_overrides',
+ ];
+
+ protected $casts = [
+     'is_tax_resident' => 'boolean',
+     'tax_by_type'     => 'array',
++    'selected_tax_type_ids' => 'array',
++    'tax_type_overrides'    => 'array',
+ ];
+```
+
+---
+
+### 2. Model Factories (7 new files)
+
+All factories go in `database/factories/`. We only have `UserFactory` currently.
+
+| # | Factory File | Creates | Key Fields |
+|---|---|---|---|
+| 1 | [NEW] [CountryFactory.php](file:///c:/xampp/htdocs/inertia/database/factories/CountryFactory.php) | `Country` | `name`, `iso_code`, `currency_code`, `tax_residency_days`, `flat_tax_rate`, `has_progressive_tax`, `is_active` |
+| 2 | [NEW] [TaxTypeFactory.php](file:///c:/xampp/htdocs/inertia/database/factories/TaxTypeFactory.php) | `TaxType` | `key`, `name`, `is_default`, `is_active`, `sort_order` |
+| 3 | [NEW] [TaxBracketFactory.php](file:///c:/xampp/htdocs/inertia/database/factories/TaxBracketFactory.php) | `TaxBracket` | `country_id`, `tax_type_id`, `tax_year`, `min_income`, `max_income`, `rate`, `is_active` |
+| 4 | [NEW] [TaxTreatyFactory.php](file:///c:/xampp/htdocs/inertia/database/factories/TaxTreatyFactory.php) | `TaxTreaty` | `country_a_id`, `country_b_id`, `treaty_type`, `applicable_tax_year`, `is_active` |
+| 5 | [NEW] [UserCalculationFactory.php](file:///c:/xampp/htdocs/inertia/database/factories/UserCalculationFactory.php) | `UserCalculation` | `session_uuid`, `gross_income`, `currency`, `country_id`, `citizenship_country_code`, `step_reached` |
+| 6 | [NEW] [UserCalculationCountryFactory.php](file:///c:/xampp/htdocs/inertia/database/factories/UserCalculationCountryFactory.php) | `UserCalculationCountry` | `user_calculation_id`, `country_id`, `days_spent`, `is_tax_resident` |
+| 7 | [NEW] [SettingFactory.php](file:///c:/xampp/htdocs/inertia/database/factories/SettingFactory.php) | `Setting` | `key`, `value`, `type` |
+
+---
+
+### 3. Feature Test Files (8 new files)
+
+All tests in `tests/Feature/TaxCalculator/`. Uses **Pest PHP** syntax matching the existing test style.
+
+---
+
+#### [NEW] [TaxCalculatorStep1Test.php](file:///c:/xampp/htdocs/inertia/tests/Feature/TaxCalculator/TaxCalculatorStep1Test.php)
+
+**Tests the Step 1 controller routes: `GET /tax-calculator` and `POST /tax-calculator/step-1`**
+
+| # | Test Case |
+|---|---|
+| 1 | `GET /tax-calculator` returns 200 with countries and currencies |
+| 2 | `POST /step-1` with valid data creates `UserCalculation` and redirects to step-2 |
+| 3 | `POST /step-1` with missing `annual_income` returns validation error |
+| 4 | `POST /step-1` with invalid `currency` (not 3 chars) returns validation error |
+| 5 | `POST /step-1` with non-existent `citizenship_country_id` returns validation error |
+| 6 | `POST /step-1` twice with same session updates existing `UserCalculation` (not duplicate) |
+
+---
+
+#### [NEW] [TaxCalculatorStep2Test.php](file:///c:/xampp/htdocs/inertia/tests/Feature/TaxCalculator/TaxCalculatorStep2Test.php)
+
+**Tests the Step 2 controller routes: `GET /tax-calculator/step-2` and `POST /tax-calculator/step-2`**
+
+| # | Test Case |
+|---|---|
+| 1 | `GET /step-2` redirects to index if no session UUID |
+| 2 | `GET /step-2` renders correctly with valid session |
+| 3 | `POST /step-2` stores residency periods and redirects to step-3 |
+| 4 | `POST /step-2` fails if total days ≠ 365 |
+| 5 | `POST /step-2` fails if days < 1 or > 365 |
+| 6 | `POST /step-2` fails with duplicate country IDs |
+| 7 | `POST /step-2` stores custom taxes correctly |
+| 8 | `POST /step-2` redirects to index if session expired |
+
+---
+
+#### [NEW] [TaxCalculatorStep3Test.php](file:///c:/xampp/htdocs/inertia/tests/Feature/TaxCalculator/TaxCalculatorStep3Test.php)
+
+**Tests the Step 3 controller route: `GET /tax-calculator/step-3`**
+
+| # | Test Case |
+|---|---|
+| 1 | `GET /step-3` redirects to index if no session |
+| 2 | `GET /step-3` redirects to step-2 if no countries visited |
+| 3 | `GET /step-3` renders result page with complete calculation data |
+| 4 | Result contains `annual_income`, `total_tax`, `net_income`, `effective_tax_rate`, `breakdown_by_country` |
+
+---
+
+#### [NEW] [TaxCalculationServiceTest.php](file:///c:/xampp/htdocs/inertia/tests/Feature/TaxCalculator/TaxCalculationServiceTest.php)
+
+**Tests `TaxCalculationService` — the core tax math engine**
+
+| # | Test Case |
+|---|---|
+| 1 | `allocateIncome` — proportional allocation (100k, 200 days → 54,795) |
+| 2 | `allocateIncome` — full year (365 days → full income) |
+| 3 | `calculateForCountry` — flat tax country (e.g. 15% rate) |
+| 4 | `calculateForCountry` — progressive tax with 3 brackets |
+| 5 | `calculateForCountry` — custom percentage tax type (e.g. 5% social security) |
+| 6 | `calculateForCountry` — custom flat amount tax type (e.g. $1,500 annual) |
+| 7 | `calculateForCountry` — mixed: income tax brackets + custom override on social security |
+| 8 | `calculateForCountry` — no brackets and no flat rate → $0 tax |
+| 9 | `calculateForCountry` — bracket with cap (`has_cap=true`, `annual_cap=5000`) |
+| 10 | `calculateForCountry` — zero income → $0 tax, 0% effective rate |
+
+---
+
+#### [NEW] [ResidencyDeterminationTest.php](file:///c:/xampp/htdocs/inertia/tests/Feature/TaxCalculator/ResidencyDeterminationTest.php)
+
+**Tests `ResidencyDeterminationService`**
+
+| # | Test Case |
+|---|---|
+| 1 | 200 days in 183-threshold country → tax resident |
+| 2 | 100 days in 183-threshold country → NOT tax resident |
+| 3 | Exactly 183 days → tax resident |
+| 4 | Country where `counts_arrival_day=false` reduces effective days by 1 |
+| 5 | Country where `counts_departure_day=false` reduces effective days by 1 |
+| 6 | Both arrival/departure not counted → reduces by 2 |
+| 7 | `generateWarnings` — near threshold (within 14 days) produces warning |
+| 8 | `generateWarnings` — barely resident produces warning |
+| 9 | `generateWarnings` — far from threshold → no warning |
+
+---
+
+#### [NEW] [TreatyResolutionTest.php](file:///c:/xampp/htdocs/inertia/tests/Feature/TaxCalculator/TreatyResolutionTest.php)
+
+**Tests `TreatyResolutionService`**
+
+| # | Test Case |
+|---|---|
+| 1 | No treaty between countries → no adjustment |
+| 2 | `credit` treaty → 15% reduction on tax |
+| 3 | `exemption` treaty for non-resident → tax becomes $0 |
+| 4 | `exemption` treaty for tax resident → NOT applied (skipped) |
+| 5 | `partial` treaty → 50% reduction |
+| 6 | Same country as citizenship → no treaty lookup |
+
+---
+
+#### [NEW] [FeieCalculationTest.php](file:///c:/xampp/htdocs/inertia/tests/Feature/TaxCalculator/FeieCalculationTest.php)
+
+**Tests `FeieCalculationService`**
+
+| # | Test Case |
+|---|---|
+| 1 | Non-US citizen → returns `null` |
+| 2 | US citizen, 340 days outside → eligible, income excluded |
+| 3 | US citizen, 300 days outside → NOT eligible |
+| 4 | US citizen, income > FEIE limit → exclusion capped at limit |
+| 5 | US citizen, income < FEIE limit → full income excluded |
+
+---
+
+#### [NEW] [FullPipelineTest.php](file:///c:/xampp/htdocs/inertia/tests/Feature/TaxCalculator/FullPipelineTest.php)
+
+**End-to-end tests through `TaxCalculatorService::calculateTaxes()`**
+
+| # | Test Case |
+|---|---|
+| 1 | Single country, flat tax — calculates correct total |
+| 2 | Two countries, progressive + flat — income allocated proportionally |
+| 3 | One country resident + one non-resident — only resident is taxed |
+| 4 | With custom taxes (percentage + flat) — adds to total |
+| 5 | US citizen with FEIE eligibility — adjusts US tax downward |
+| 6 | Treaty between citizenship and residence country — applies credit |
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+Run the full test suite for the TaxCalculator module:
+
+```bash
+php artisan test --filter=TaxCalculator
+```
+
+Run individual test files to isolate failures:
+
+```bash
+php artisan test tests/Feature/TaxCalculator/TaxCalculatorStep1Test.php
+php artisan test tests/Feature/TaxCalculator/TaxCalculationServiceTest.php
+```
+
+Expected: **All tests pass**, no existing test regressions.
+
+### Regression Check
+
+Run the full application test suite to ensure no regressions:
+
+```bash
+php artisan test
+```

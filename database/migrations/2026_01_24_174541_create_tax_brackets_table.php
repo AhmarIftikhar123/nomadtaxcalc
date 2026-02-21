@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // states table moved to separate migration
         Schema::create('tax_brackets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('country_id')->constrained('countries')->onDelete('cascade');
+            $table->foreignId('state_id')->nullable()->constrained('states')->onDelete('cascade');
             $table->foreignId('tax_type_id')->constrained('tax_types')->onDelete('cascade');
             $table->year('tax_year'); // e.g. 2026
             $table->decimal('min_income', 15, 2);
@@ -22,7 +24,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['country_id', 'tax_type_id', 'tax_year', 'is_active']);
-            $table->unique(['country_id', 'tax_type_id', 'tax_year', 'min_income']);
+            $table->unique(['country_id', 'state_id', 'tax_type_id', 'tax_year', 'min_income'], 'tax_bracket_unique');
         });
     }
 

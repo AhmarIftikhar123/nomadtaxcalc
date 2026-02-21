@@ -21,6 +21,7 @@ class Country extends Model
         'has_progressive_tax',
         'flat_tax_rate',
         'taxes_worldwide_income',
+        'tax_basis',
         // Digital Nomad
         'has_digital_nomad_visa',
         'digital_nomad_visa_name',
@@ -74,6 +75,14 @@ class Country extends Model
     public function taxBrackets()
     {
         return $this->hasMany(TaxBracket::class);
+    }
+
+    /**
+     * Get states for this country
+     */
+    public function states()
+    {
+        return $this->hasMany(State::class);
     }
 
     /**

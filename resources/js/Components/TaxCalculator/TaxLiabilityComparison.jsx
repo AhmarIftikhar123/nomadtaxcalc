@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React from 'react';
+import React from "react";
 import {
     BarChart,
     Bar,
@@ -10,12 +10,12 @@ import {
     Tooltip,
     ResponsiveContainer,
     Cell,
-} from 'recharts';
+} from "recharts";
 
 export default function TaxLiabilityComparison({ comparisonData, currency }) {
     const formatCurrency = (value) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
             currency: currency,
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
@@ -29,13 +29,16 @@ export default function TaxLiabilityComparison({ comparisonData, currency }) {
 
     // Color based on position - primary for highest, lighter for others
     const getBarColor = (index, highestIndex) => {
-        return index === highestIndex ? '#22262a' : '#b8bcc3';
+        return index === highestIndex ? "#22262a" : "#b8bcc3";
     };
 
     const highestIndex = chartData.reduce(
-        (maxIdx, item, idx) => (item.liability > chartData[maxIdx].liability ? idx : maxIdx),
-        0
+        (maxIdx, item, idx) =>
+            item.liability > chartData[maxIdx].liability ? idx : maxIdx,
+        0,
     );
+
+    const allZero = chartData.every((item) => item.liability === 0);
 
     const CustomTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
@@ -60,9 +63,19 @@ export default function TaxLiabilityComparison({ comparisonData, currency }) {
                 </p>
             </div>
 
-            <div className="w-full h-80">
+            <div className="w-full h-80 relative">
+                {allZero && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                        <p className="text-xl font-bold text-gray-400">
+                            0 Tax Liability
+                        </p>
+                    </div>
+                )}
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
+                    <BarChart
+                        data={chartData}
+                        margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
+                    >
                         <CartesianGrid
                             strokeDasharray="3 3"
                             stroke="#e0e0e1"
@@ -70,13 +83,15 @@ export default function TaxLiabilityComparison({ comparisonData, currency }) {
                         />
                         <XAxis
                             dataKey="country"
-                            tick={{ fill: '#737578', fontSize: 12 }}
-                            axisLine={{ stroke: '#e0e0e1' }}
+                            tick={{ fill: "#737578", fontSize: 12 }}
+                            axisLine={{ stroke: "#e0e0e1" }}
                         />
                         <YAxis
-                            tick={{ fill: '#737578', fontSize: 12 }}
-                            axisLine={{ stroke: '#e0e0e1' }}
-                            tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                            tick={{ fill: "#737578", fontSize: 12 }}
+                            axisLine={{ stroke: "#e0e0e1" }}
+                            tickFormatter={(value) =>
+                                `${(value / 1000).toFixed(0)}k`
+                            }
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="liability" radius={[8, 8, 0, 0]}>
@@ -96,7 +111,7 @@ export default function TaxLiabilityComparison({ comparisonData, currency }) {
                 {chartData.map((item) => (
                     <div
                         key={item.country}
-                        className="text-center p-4 bg-light rounded-lg"
+                        className="text-center p-2 bg-light rounded-lg"
                     >
                         <p className="text-sm text-gray mb-1">{item.country}</p>
                         <p className="text-lg font-bold text-primary">

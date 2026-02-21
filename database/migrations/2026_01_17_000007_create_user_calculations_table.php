@@ -20,9 +20,11 @@ return new class extends Migration
 
             // Calculation inputs
             $table->foreignId('country_id')->constrained('countries')->onDelete('cascade');
+            $table->foreignId('domicile_state_id')->nullable()->constrained('states')->nullOnDelete();
             $table->string('ip_address', 45)->nullable();
             $table->decimal('gross_income', 12, 2);
             $table->string('currency', 3)->default('USD');
+            $table->year('tax_year')->default(2026);
             $table->string('citizenship_country_code', 2)->nullable();
             $table->json('additional_inputs')->nullable();
             $table->json('included_tax_types')->nullable(); // e.g. ["income_tax", "social_security"]

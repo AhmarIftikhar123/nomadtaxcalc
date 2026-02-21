@@ -22,6 +22,8 @@ return new class extends Migration
             $table->boolean('has_progressive_tax')->default(true);
             $table->decimal('flat_tax_rate', 5, 2)->nullable();
             $table->boolean('taxes_worldwide_income')->default(false);
+            $table->enum('tax_basis', ['worldwide', 'territorial', 'remittance'])->default('worldwide');
+
             
             // Digital Nomad Information
             $table->boolean('has_digital_nomad_visa')->default(false);
@@ -63,3 +65,4 @@ return new class extends Migration
         Schema::dropIfExists('countries');
     }
 };
+ 

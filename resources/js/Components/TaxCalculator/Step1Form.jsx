@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Lock, ArrowRight, Loader } from "lucide-react";
+import React, { useMemo } from "react";
+import { Lock, ArrowRight, Loader, Info } from "lucide-react";
 import InputError from "@/Components/InputError";
 import Select from "@/Components/Form/Select";
 
@@ -10,9 +10,16 @@ export default function Step1Form({
     setData,
     errors,
     countries,
+    states = [],
     currencies,
+    availableYears,
     processing,
 }) {
+    const selectedCountry = countries.find(
+        (c) => c.id === Number(data.citizenship_country_id),
+    );
+    const isUSCitizen = selectedCountry?.code === "US";
+
     // Format options for Select component
     const currencyOptions = currencies.map((curr) => ({
         value: curr.code,
@@ -24,10 +31,37 @@ export default function Step1Form({
         label: country.name,
     }));
 
+    const stateOptions = states.map((state) => ({
+        value: state.id,
+        label: state.name,
+    }));
+
+    const yearOptions = (availableYears || []).map((year) => ({
+        value: String(year),
+        label: `${year}`,
+    }));
+
+    // Dynamic planning message based on selected tax year
+    const currentCalendarYear = new Date().getFullYear();
+    const selectedYear = Number(data.tax_year);
+
+    const yearPlanningMessage = useMemo(() => {
+        if (!selectedYear) return null;
+
+        if (selectedYear > currentCalendarYear) {
+            return `You're planning ahead — tax brackets for ${selectedYear} will be used for future income projections.`;
+        }
+        if (selectedYear === currentCalendarYear) {
+            return `You're estimating taxes for an active year (${selectedYear}). Brackets and treaty data are current as of today but may update before year-end.`;
+        }
+        // Past year
+        return `Filing for tax year ${selectedYear} — calculations use the ${selectedYear} tax brackets and treaties.`;
+    }, [selectedYear, currentCalendarYear]);
+
     return (
         <div className="space-y-8">
             {/* Annual Gross Income */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
                     <label
                         htmlFor="annual_income"
@@ -66,21 +100,75 @@ export default function Step1Form({
                         placeholder="Select currency"
                     />
                 </div>
+
+                {/* Tax Year */}
+                <div>
+                    <Select
+                        label="Tax Year"
+                        value={String(data.tax_year)}
+                        onChange={(value) =>
+                            setData("tax_year", value ? Number(value) : "")
+                        }
+                        options={yearOptions}
+                        error={errors.tax_year}
+                        placeholder="Select year"
+                    />
+                </div>
             </div>
 
+            {/* Tax Year Planning Message */}
+            {yearPlanningMessage && (
+                <div className="flex items-start gap-3 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 -mt-4">
+                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-blue-800 leading-relaxed">
+                        {yearPlanningMessage}
+                    </p>
+                </div>
+            )}
+
             {/* Country of Citizenship */}
-            <div>
-                <Select
-                    label="Country of Citizenship"
-                    value={data.citizenship_country_id}
-                    onChange={(value) =>
-                        setData("citizenship_country_id", value)
-                    }
-                    options={countryOptions}
-                    error={errors.citizenship_country_id}
-                    placeholder="Select your country"
-                    helpText="Your primary country of residence or citizenship for tax purposes"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <Select
+                        label="Country of Citizenship"
+                        value={data.citizenship_country_id}
+                        onChange={(value) => {
+                            setData((prev) => {
+                                const country = countries.find(
+                                    (c) => c.id === Number(value),
+                                );
+                                return {
+                                    ...prev,
+                                    citizenship_country_id: value,
+                                    ...(country?.code !== "US"
+                                        ? { domicile_state_id: "" }
+                                        : {}),
+                                };
+                            });
+                        }}
+                        options={countryOptions}
+                        error={errors.citizenship_country_id}
+                        placeholder="Select your country"
+                        helpText="Your primary country of residence or citizenship for tax purposes"
+                    />
+                </div>
+
+                {/* State of Domicile (Only visible for US citizens) */}
+                {isUSCitizen && (
+                    <div>
+                        <Select
+                            label="State of Domicile"
+                            value={data.domicile_state_id}
+                            onChange={(value) =>
+                                setData("domicile_state_id", value)
+                            }
+                            options={stateOptions}
+                            error={errors.domicile_state_id}
+                            placeholder="Select state"
+                            helpText="Required for state tax calculations"
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Security Notice */}

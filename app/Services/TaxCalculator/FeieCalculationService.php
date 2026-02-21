@@ -10,7 +10,7 @@ class FeieCalculationService
     /**
      * Calculate FEIE (Foreign Earned Income Exclusion) for US citizens
      */
-    public function calculate(int $citizenshipCountryId, array $residencyResults, float $annualIncome): ?array
+    public function calculate(int $citizenshipCountryId, array $residencyResults, float $annualIncome, int $taxYear = 2026): ?array
     {
         // Check if US citizen
         $usaCountry = Country::where('iso_code', 'US')->first();
@@ -27,7 +27,7 @@ class FeieCalculationService
         }
 
         // Get FEIE settings
-        $feieLimit = (float) Setting::get('feie_amount_2026', 126500);
+        $feieLimit = (float) Setting::get("feie_amount_{$taxYear}", 126500);
         $minDays = (int) Setting::get('feie_min_days', 330);
 
         $eligible = $daysOutsideUs >= $minDays;

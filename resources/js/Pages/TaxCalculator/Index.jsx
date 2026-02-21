@@ -1,135 +1,354 @@
 "use client";
 
-import React, { useState } from "react";
-import { useForm } from "@inertiajs/react";
-import Footer from "@/Components/Footer";
+import React, { useState, useMemo } from "react";
+import { useForm, usePage, Link } from "@inertiajs/react";
+import { RotateCcw, Download, ArrowLeft } from "lucide-react";
+import TaxCalculatorLayout from "@/Layouts/TaxCalculatorLayout";
 import Step1Form from "@/Components/TaxCalculator/Step1Form";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import TopBar from "@/Components/TopBar";
+import Form1Summary from "@/Components/TaxCalculator/Form1Summary";
+import Step2Form from "@/Components/TaxCalculator/Step2Form";
+import ResultMetricsCards from "@/Components/TaxCalculator/ResultMetricsCards";
+import ResidencyRiskAlert from "@/Components/TaxCalculator/ResidencyRiskAlert";
+import TaxLiabilityComparison from "@/Components/TaxCalculator/TaxLiabilityComparison";
+import SmartRecommendations from "@/Components/TaxCalculator/SmartRecommendations";
+import TaxCalculationFlow from "@/Components/TaxCalculator/TaxCalculationFlow";
+import DetailedTaxBreakdown from "@/Components/TaxCalculator/DetailedTaxBreakdown";
+import TreatiesApplied from "@/Components/TaxCalculator/TreatiesApplied";
+import FEIEStatus from "@/Components/TaxCalculator/FEIEStatus";
+import ResidencyInsights from "@/Components/TaxCalculator/ResidencyInsights";
 
-export default function TaxCalculatorIndex({ auth, countries, currencies }) {
-    const { data, setData, post, processing, errors } = useForm({
-        annual_income: "",
-        currency: "USD",
-        citizenship_country_id: "",
+export default function TaxCalculatorIndex({
+    countries,
+    states,
+    currencies,
+    availableYears,
+    taxTypes,
+    savedStep1Data,
+    savedResidencyPeriods,
+    calculationResult: initialResult,
+    currentStep: initialStep,
+}) {
+    // ─── Step State ──────────────────────────────────────────────
+    const [step, setStep] = useState(initialStep || 1);
+    const [result, setResult] = useState(initialResult || null);
+    const [activeTab, setActiveTab] = useState("summary");
+
+    const tabs = [
+        { id: "summary", label: "Summary" },
+        { id: "residency", label: "Residency" },
+        { id: "treaties", label: "Treaties & FEIE" },
+        { id: "breakdown", label: "Breakdown" },
+        { id: "recommendations", label: "Recommendations" },
+    ];
+
+    // ─── Single useForm for ALL steps ────────────────────────────
+    const { data, setData, post, processing, errors, reset } = useForm({
+        // Step 1 fields
+        annual_income: savedStep1Data?.annual_income ?? "",
+        currency: savedStep1Data?.currency ?? "USD",
+        citizenship_country_id: savedStep1Data?.citizenship_country_id ?? "",
+        domicile_state_id: savedStep1Data?.domicile_state_id ?? "",
+        tax_year:
+            savedStep1Data?.tax_year ??
+            availableYears?.[0] ??
+            new Date().getFullYear(),
+        // Step 2 fields
+        residency_periods:
+            savedResidencyPeriods && savedResidencyPeriods.length > 0
+                ? savedResidencyPeriods
+                : [],
     });
 
-    const isAuthenticated = auth?.user;
+    // ─── Resolve citizenship country info for Form1Summary ───────
+    const citizenshipSummary = useMemo(() => {
+        if (!data.citizenship_country_id) {
+            return {
+                citizenship_country_code:
+                    savedStep1Data?.citizenship_country_code ?? "",
+                citizenship_country_name:
+                    savedStep1Data?.citizenship_country_name ?? "",
+            };
+        }
+        const country = countries.find(
+            (c) => c.id === Number(data.citizenship_country_id),
+        );
+        return {
+            citizenship_country_code: country?.code ?? "",
+            citizenship_country_name: country?.name ?? "",
+        };
+    }, [data.citizenship_country_id, countries, savedStep1Data]);
 
-    const handleSubmit = (e) => {
+    // ─── Step titles ─────────────────────────────────────────────
+    const stepConfig = {
+        1: {
+            title: "Income & Citizenship",
+            subtitle: "Step 1 of 3: Let's start with the basics",
+            progress: 0,
+        },
+        2: {
+            title: "Residency Details",
+            subtitle: "Step 2 of 3: Where did you live this year?",
+            progress: 40,
+        },
+        3: {
+            title: `Tax Calculation Results — ${result?.tax_year || data.tax_year || 2026}`,
+            subtitle: "Step 3 of 3: Your personalized tax analysis",
+            progress: 100,
+        },
+    };
+
+    const current = stepConfig[step];
+
+    // ─── Step 1 Submit ───────────────────────────────────────────
+    const handleStep1Submit = (e) => {
         e.preventDefault();
         post(route("tax-calculator.step-1"), {
+            preserveState: true,
             preserveScroll: true,
+            onSuccess: (page) => {
+                // Server saved step 1, advance to step 2
+                setStep(2);
+            },
         });
     };
 
-    // If user is authenticated, show dashboard layout with sidebar
-    if (isAuthenticated) {
-        return (
-            <AuthenticatedLayout user={auth.user} title="Tax Calculation">
-                {/* Page Content */}
-                <div className="max-w-[1200px] mx-auto px-6 md:px-8 py-12">
-                    {/* Progress Section */}
-                    <div className="mb-12 flex justify-between items-end">
-                        <div className="flex-1">
-                            <h1 className="text-4xl md:text-5xl font-bold text-primary mb-2">
-                                Income & Citizenship
-                            </h1>
-                            <p className="text-lg text-gray">
-                                Step 1 of 3: Let's start with the basics
-                            </p>
-                        </div>
-                        <div className="text-right w-48">
-                            <p className="text-sm font-bold text-primary mb-2">
-                                0% Completed
-                            </p>
-                            <div className="w-full h-1.5 bg-border-gray rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-primary"
-                                    style={{ width: "0%" }}
-                                ></div>
-                            </div>
-                        </div>
-                    </div>
+    // ─── Step 2 Submit ───────────────────────────────────────────
+    const handleStep2Submit = () => {
+        post(route("tax-calculator.step-2.store"), {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: (page) => {
+                // Server calculated taxes, extract result and advance to step 3
+                const result =
+                    page.props.calculationResult ||
+                    page.props.flash?.calculationResult;
+                setResult(result);
+                setStep(3);
+            },
+        });
+    };
 
-                    {/* Form Card */}
-                    <div className="bg-white rounded-xl border border-border-gray p-8 md:p-12 shadow-sm">
-                        <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
-                            Let's start with the basics
-                        </h1>
-                        <p className="text-lg text-gray mb-10">
-                            To accurately estimate your tax liability, we need
-                            to know your annual earnings and your primary
-                            country of citizenship.
-                        </p>
+    // ─── Navigation ──────────────────────────────────────────────
+    const handleBack = () => {
+        setStep((prev) => Math.max(1, prev - 1));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
 
-                        <form onSubmit={handleSubmit}>
-                            <Step1Form
-                                data={data}
-                                setData={setData}
-                                errors={errors}
-                                countries={countries}
-                                currencies={currencies}
-                                processing={processing}
-                            />
-                        </form>
-                    </div>
-                </div>
-            </AuthenticatedLayout>
-        );
-    }
+    const handleRecalculate = () => {
+        setStep(1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
 
-    // If user is not authenticated, show public layout
+    // ─── Render ──────────────────────────────────────────────────
     return (
-        <>
-            {/* <Header /> */}
-            {/* Top Bar */}
-            <TopBar title="Tax Calculation Results" />
-            <main className="min-h-screen bg-light">
-                <div className="max-w-[1200px] mx-auto px-6 md:px-20 lg:px-40 py-16">
-                    {/* Progress Section */}
-                    <div className="mb-12">
-                        <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">
-                            Income & Citizenship
+        <TaxCalculatorLayout
+            title={current.title}
+            onRecalculate={step === 3 ? handleRecalculate : undefined}
+        >
+            <div
+                className={`mx-auto px-6 md:px-8 py-12 ${step === 3 ? "max-w-6xl" : step === 2 ? "max-w-4xl" : "max-w-[1200px]"}`}
+            >
+                {/* ─── Progress Section ──────────────────────── */}
+                <div className="mb-12 flex justify-between items-end">
+                    <div className="flex-1">
+                        <div className="flex items-center gap-4 mb-2">
+                            {step > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={handleBack}
+                                    className="p-2 -ml-2 rounded-lg border border-border-gray hover:bg-primary hover:text-light text-primary transition-colors duration-200"
+                                    aria-label="Go to previous step"
+                                >
+                                    <ArrowLeft className="w-6 h-6" />
+                                </button>
+                            )}
+                            <h1 className="text-4xl md:text-5xl font-bold text-primary">
+                                {current.title}
+                            </h1>
+                        </div>
+                        <p className="text-lg text-gray">{current.subtitle}</p>
+                    </div>
+                    <div className="text-right w-48">
+                        <p className="text-sm font-bold text-primary mb-2">
+                            {current.progress}% Completed
                         </p>
-                        <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                                <div
-                                    className="h-1.5 bg-primary rounded-full"
-                                    style={{ width: "33.33%" }}
-                                ></div>
-                            </div>
-                            <span className="text-sm font-semibold text-primary whitespace-nowrap">
-                                Step 1 of 3
-                            </span>
+                        <div className="w-full h-1.5 bg-border-gray rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-primary transition-all duration-500"
+                                style={{ width: `${current.progress}%` }}
+                            ></div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Form Card */}
+                {/* ═══════════════ STEP 1 ═══════════════ */}
+                {step === 1 && (
                     <div className="bg-white rounded-xl border border-border-gray p-8 md:p-12 shadow-sm">
-                        <h1 className="text-4xl md:text-5xl font-bold text-primary mb-4">
+                        <h2 className="text-4xl md:text-5xl font-bold text-primary mb-4">
                             Let's start with the basics
-                        </h1>
+                        </h2>
                         <p className="text-lg text-gray mb-10">
                             To accurately estimate your tax liability, we need
                             to know your annual earnings and your primary
                             country of citizenship.
                         </p>
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleStep1Submit}>
                             <Step1Form
                                 data={data}
                                 setData={setData}
                                 errors={errors}
                                 countries={countries}
+                                states={states}
                                 currencies={currencies}
+                                availableYears={availableYears}
                                 processing={processing}
                             />
                         </form>
                     </div>
-                </div>
-            </main>
-            <Footer />
-        </>
+                )}
+
+                {/* ═══════════════ STEP 2 ═══════════════ */}
+                {step === 2 && (
+                    <>
+                        {/* Form1 Summary */}
+                        <Form1Summary
+                            formData={{
+                                annual_income: data.annual_income,
+                                currency: data.currency,
+                                tax_year: data.tax_year,
+                                ...citizenshipSummary,
+                            }}
+                        />
+
+                        {/* Step2 Form Card */}
+                        <div className="bg-white rounded-xl border border-border-gray p-8 md:p-12 shadow-sm">
+                            <Step2Form
+                                data={data}
+                                setData={setData}
+                                errors={errors}
+                                processing={processing}
+                                onSubmit={handleStep2Submit}
+                                onBack={handleBack}
+                                countries={countries}
+                                states={states}
+                                taxTypes={taxTypes}
+                                taxYear={data.tax_year}
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* ═══════════════ STEP 3 ═══════════════ */}
+                {step === 3 && result && (
+                    <>
+                        {/* Tabs Navigation */}
+                        <div className="flex overflow-x-auto overflow-y-hidden gap-2 mb-8 pb-2 border-b-2 border-border-gray no-scrollbar">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`whitespace-nowrap px-6 py-3 font-bold rounded-t-lg transition-colors border-2 border-b-0 -mb-[2px] ${
+                                        activeTab === tab.id
+                                            ? "bg-primary text-light border-primary"
+                                            : "bg-light text-gray hover:bg-gray/10 border-transparent"
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Tab Content: Summary */}
+                        {activeTab === "summary" && (
+                            <div className="space-y-6">
+                                <ResultMetricsCards result={result} />
+                                <TaxCalculationFlow result={result} />
+                            </div>
+                        )}
+
+                        {/* Tab Content: Residency */}
+                        {activeTab === "residency" && (
+                            <div className="space-y-6">
+                                <ResidencyInsights
+                                    residencyData={result.residency_data || []}
+                                />
+                                <ResidencyRiskAlert
+                                    residencyData={result.residency_data || []}
+                                />
+                            </div>
+                        )}
+
+                        {/* Tab Content: Treaties & FEIE */}
+                        {activeTab === "treaties" && (
+                            <div className="space-y-6">
+                                <TreatiesApplied
+                                    treatiesApplied={result.treaties_applied}
+                                    currency={result.currency}
+                                />
+                                <FEIEStatus
+                                    feieResult={result.feie_result}
+                                    citizenshipCountryCode={
+                                        citizenshipSummary.citizenship_country_code
+                                    }
+                                    currency={result.currency}
+                                    taxYear={result.tax_year}
+                                />
+                            </div>
+                        )}
+
+                        {/* Tab Content: Breakdown */}
+                        {activeTab === "breakdown" && (
+                            <div className="space-y-6">
+                                <TaxLiabilityComparison
+                                    comparisonData={
+                                        result.comparison_data || []
+                                    }
+                                    currency={result.currency}
+                                />
+                                <DetailedTaxBreakdown
+                                    breakdownData={
+                                        result.breakdown_by_country || []
+                                    }
+                                    currency={result.currency}
+                                    taxYear={result.tax_year}
+                                />
+                            </div>
+                        )}
+
+                        {/* Tab Content: Recommendations */}
+                        {activeTab === "recommendations" && (
+                            <div className="space-y-6">
+                                <SmartRecommendations
+                                    recommendations={
+                                        result.recommendations || []
+                                    }
+                                    currency={result.currency}
+                                />
+                            </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-4 justify-center flex-wrap mt-12 mb-12">
+                            <button
+                                type="button"
+                                onClick={handleRecalculate}
+                                className="px-8 py-4 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-light transition-all flex items-center gap-2"
+                            >
+                                <RotateCcw className="w-5 h-5" />
+                                Start Over
+                            </button>
+                            <button
+                                onClick={() => window.print()}
+                                className="px-8 py-4 bg-primary hover:bg-dark text-light font-bold rounded-lg transition-all flex items-center gap-2"
+                            >
+                                <Download className="w-5 h-5" />
+                                Print Results
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+        </TaxCalculatorLayout>
     );
 }

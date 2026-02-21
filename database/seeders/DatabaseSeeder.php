@@ -10,9 +10,11 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             CountrySeeder::class,
+            StateSeeder::class,
             TaxTypeSeeder::class,
             SettingSeeder::class,
             TaxBracketSeeder::class,
+            TaxBracketSeedar2025::class,
             TaxTreatySeeder::class,
         ]);
     }

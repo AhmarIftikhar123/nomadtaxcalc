@@ -38,7 +38,7 @@ class RecommendationService
                     'type' => 'tax_optimization',
                     'priority' => 'high',
                     'title' => 'Reduce time in high-tax countries',
-                    'message' => "You paid the most tax in {$highestTax['country_name']} ({$highestTax['currency']} " . number_format($highestTax['tax_due'], 2) . "). Consider reducing your stay below the {$highestTax['threshold']} day threshold.",
+                    'message' => "You paid the most tax in {$highestTax['country_name']} ({$highestTax['currency']} " . number_format($highestTax['tax_due']) . "). Consider reducing your stay below the {$highestTax['threshold']} day threshold.",
                 ];
             }
         }
@@ -86,7 +86,7 @@ class RecommendationService
                 'type' => 'zero_tax',
                 'priority' => 'high',
                 'title' => 'Consider zero-tax jurisdictions',
-                'message' => "With your tax burden of $" . number_format($totalTax, 2) . ", you could save significantly by spending more time in zero-tax countries like {$countryNames}.",
+                'message' => "With your tax burden of $" . number_format($totalTax) . ", you could save significantly by spending more time in zero-tax countries like {$countryNames}.",
             ];
         }
 

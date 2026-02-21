@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('country_a_id')->constrained('countries')->onDelete('cascade');
             $table->foreignId('country_b_id')->constrained('countries')->onDelete('cascade');
-            $table->enum('treaty_type', ['credit', 'exemption', 'partial'])->default('credit');
+            $table->enum('treaty_type', ['credit', 'exemption', 'partial', 'totalization'])->default('credit');
             $table->year('applicable_tax_year')->default(2026);
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);

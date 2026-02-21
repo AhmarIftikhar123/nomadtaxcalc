@@ -41,37 +41,25 @@ export default function TopBar({
     return (
         <div className="bg-light border-b border-border-gray sticky top-0 z-40 h-16 overflow-visible">
             <div className="flex items-center justify-between px-6 h-full">
-                {/* Left: Logo/Brand (for guests) OR Sidebar Toggle + Title (for authenticated) */}
+                {/* Left: Sidebar Toggle + Title */}
                 <div className="flex items-center gap-4">
-                    {isAuthenticated ? (
-                        <>
-                            {/* Sidebar Toggle - Only for authenticated users */}
-                            <button
-                                onClick={onToggleSidebar}
-                                className="p-2 hover:bg-border-gray rounded-lg text-primary transition-colors"
-                                aria-label="Toggle sidebar"
-                            >
-                                <Menu className="w-6 h-6" />
-                            </button>
-                            <h1 className="text-lg font-semibold text-primary hidden md:block">
-                                {title}
-                            </h1>
-                        </>
-                    ) : (
-                        /* Logo - Only for guest users */
-                        <Link
-                            href={route("home")}
-                            className="flex items-center hover:opacity-80 transition-opacity"
-                        >
-                            <ApplicationLogo className="h-8 w-auto" />
-                        </Link>
-                    )}
+                    {/* Sidebar Toggle - Always visible */}
+                    <button
+                        onClick={onToggleSidebar}
+                        className="p-2 hover:bg-border-gray rounded-lg text-primary transition-colors"
+                        aria-label="Toggle sidebar"
+                    >
+                        <Menu className="w-6 h-6" />
+                    </button>
+                    <h1 className="text-lg font-semibold text-primary hidden md:block">
+                        {title}
+                    </h1>
                 </div>
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-1">
-                    {/* Recalculate Button - Only for authenticated users */}
-                    {isAuthenticated && onRecalculate && (
+                    {/* Recalculate Button — available for any user */}
+                    {onRecalculate && (
                         <button
                             onClick={onRecalculate}
                             className="hidden md:flex px-4 py-2 bg-primary text-light rounded-lg font-medium text-sm hover:bg-dark transition-colors duration-200 items-center gap-2"
@@ -157,7 +145,10 @@ export default function TopBar({
                         </>
                     ) : (
                         /* Guest User Section */
-                        <Tooltip text="Login to monitor US tax thresholds & many more benefits." position="left">
+                        <Tooltip
+                            text="Login to monitor US tax thresholds & many more benefits."
+                            position="left"
+                        >
                             <Link
                                 href={route("login")}
                                 className="flex items-center gap-2 px-4 py-2 bg-primary text-light rounded-lg font-medium text-sm hover:bg-dark transition-colors duration-200"

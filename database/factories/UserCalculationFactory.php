@@ -1,0 +1,38 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Models\UserCalculation;
+use App\Models\Country;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+
+class UserCalculationFactory extends Factory
+{
+    protected $model = UserCalculation::class;
+
+    public function definition(): array
+    {
+        return [
+            'session_uuid'             => (string) Str::uuid(),
+            'gross_income'             => 100000,
+            'currency'                 => 'USD',
+            'country_id'               => Country::factory(),
+            'citizenship_country_code' => 'US',
+            'step_reached'             => 1,
+            'ip_address'               => fake()->ipv4(),
+            'device_type'              => 'desktop',
+            'started_at'               => now(),
+        ];
+    }
+
+    /**
+     * Calculation that has completed step 2.
+     */
+    public function step2Completed(): static
+    {
+        return $this->state(fn () => [
+            'step_reached' => 2,
+        ]);
+    }
+}

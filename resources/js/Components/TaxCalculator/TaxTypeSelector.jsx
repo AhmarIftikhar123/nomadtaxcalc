@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Plus, X, DollarSign, Percent } from "lucide-react";
-import Select from "@/Components/Select";
+import Select from "@/Components/Form/Select";
 
 export default function TaxTypeSelector({
     countryName,
@@ -12,7 +12,15 @@ export default function TaxTypeSelector({
     availableTaxTypes = [],
     className = "",
 }) {
-    const [isExpanded, setIsExpanded] = useState(false);
+    // Auto-expand if there are custom taxes or any entry with a filled amount
+    const hasCustomEntries = value.some(
+        (entry) =>
+            entry.is_custom ||
+            (entry.amount !== "" &&
+                entry.amount !== null &&
+                entry.amount !== undefined),
+    );
+    const [isExpanded, setIsExpanded] = useState(hasCustomEntries);
     const [selectedTaxTypes, setSelectedTaxTypes] = useState(value);
 
     // Add new tax type entry
@@ -38,11 +46,15 @@ export default function TaxTypeSelector({
         onChange(updated);
     };
 
-    // Update tax type entry
-    const handleUpdate = (id, field, value) => {
-        const updated = selectedTaxTypes.map((item) =>
-            item.id === id ? { ...item, [field]: value } : item
-        );
+    // Update tax type entry — accepts (id, field, value) OR (id, fieldsObject)
+    const handleUpdate = (id, fieldOrFields, value) => {
+        const updated = selectedTaxTypes.map((item) => {
+            if (item.id !== id) return item;
+            if (typeof fieldOrFields === "object" && fieldOrFields !== null) {
+                return { ...item, ...fieldOrFields };
+            }
+            return { ...item, [fieldOrFields]: value };
+        });
         setSelectedTaxTypes(updated);
         onChange(updated);
     };
@@ -54,25 +66,11 @@ export default function TaxTypeSelector({
             .map((item) => item.tax_type_id);
 
         return availableTaxTypes
-            .filter(
-                (taxType) =>
-                    !selectedIds.includes(taxType.id.toString()) &&
-                    !taxType.is_default
-            )
+            .filter((taxType) => !selectedIds.includes(taxType.id.toString()))
             .map((taxType) => ({
                 value: taxType.id.toString(),
                 label: taxType.name,
             }));
-    };
-
-    // Toggle custom tax type mode
-    const handleToggleCustom = (id, isCustom) => {
-        handleUpdate(id, "is_custom", isCustom);
-        if (isCustom) {
-            handleUpdate(id, "tax_type_id", "");
-        } else {
-            handleUpdate(id, "custom_name", "");
-        }
     };
 
     return (
@@ -113,15 +111,13 @@ export default function TaxTypeSelector({
                             key={entry.id}
                             entry={entry}
                             availableOptions={getAvailableTaxTypeOptions(
-                                entry.id
+                                entry.id,
                             )}
-                            onUpdate={(field, value) =>
-                                handleUpdate(entry.id, field, value)
+                            availableTaxTypes={availableTaxTypes}
+                            onUpdate={(fieldOrFields, value) =>
+                                handleUpdate(entry.id, fieldOrFields, value)
                             }
                             onRemove={() => handleRemove(entry.id)}
-                            onToggleCustom={(isCustom) =>
-                                handleToggleCustom(entry.id, isCustom)
-                            }
                         />
                     ))}
 
@@ -144,55 +140,92 @@ export default function TaxTypeSelector({
 function TaxTypeEntry({
     entry,
     availableOptions,
+    availableTaxTypes,
     onUpdate,
     onRemove,
-    onToggleCustom,
 }) {
-    const [showCustomToggle, setShowCustomToggle] = useState(false);
+    // Build options list that includes the currently selected option (if predefined)
+    // This fixes the display issue where selected options disappear from the dropdown
+    const allOptions = React.useMemo(() => {
+        // If predefined tax type is selected, add it back to options for display
+        if (!entry.is_custom && entry.tax_type_id) {
+            // Check if it's already in availableOptions
+            const alreadyExists = availableOptions.some(
+                (opt) => opt.value === entry.tax_type_id,
+            );
+
+            if (!alreadyExists) {
+                // Find the actual tax type from availableTaxTypes
+                const selectedTaxType = availableTaxTypes.find(
+                    (t) => t.id.toString() === entry.tax_type_id,
+                );
+
+                const label = selectedTaxType
+                    ? selectedTaxType.name
+                    : `Tax Type #${entry.tax_type_id}`;
+
+                return [
+                    { value: entry.tax_type_id, label },
+                    ...availableOptions,
+                ];
+            }
+        }
+
+        // If custom, add it as an option for display
+        if (entry.is_custom && entry.custom_name) {
+            return [
+                { value: entry.custom_name, label: entry.custom_name },
+                ...availableOptions,
+            ];
+        }
+
+        return availableOptions;
+    }, [entry, availableOptions, availableTaxTypes]);
 
     return (
         <div className="bg-white rounded-lg border border-border-gray p-4 space-y-3">
             {/* Header with Remove Button */}
             <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 space-y-3">
-                    {/* Tax Type Selection or Custom Name */}
-                    {!entry.is_custom ? (
-                        <Select
-                            label="Tax Type"
-                            value={entry.tax_type_id}
-                            onChange={(value) =>
-                                onUpdate("tax_type_id", value)
-                            }
-                            options={availableOptions}
-                            placeholder="Select a tax type..."
-                        />
-                    ) : (
-                        <div>
-                            <label className="block text-sm font-semibold text-primary mb-2">
-                                Custom Tax Name
-                            </label>
-                            <input
-                                type="text"
-                                value={entry.custom_name}
-                                onChange={(e) =>
-                                    onUpdate("custom_name", e.target.value)
-                                }
-                                placeholder="e.g., Health Levy, Municipal Tax"
-                                className="w-full px-4 py-3 border border-border-gray rounded-lg text-base font-sans focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
-                            />
-                        </div>
-                    )}
+                    {/* Tax Type Selection (with creatable mode) */}
+                    <Select
+                        label="Tax Type"
+                        value={
+                            entry.is_custom
+                                ? entry.custom_name
+                                : entry.tax_type_id
+                        }
+                        onChange={(value) => {
+                            // Check against ALL availableTaxTypes, not just filtered availableOptions
+                            const isPredefined = availableTaxTypes.some(
+                                (taxType) => taxType.id.toString() === value,
+                            );
 
-                    {/* Custom Toggle Button */}
-                    <button
-                        type="button"
-                        onClick={() => onToggleCustom(!entry.is_custom)}
-                        className="text-xs text-primary hover:underline"
-                    >
-                        {entry.is_custom
-                            ? "← Switch to predefined tax types"
-                            : "Can't find your tax? Create custom →"}
-                    </button>
+                            if (isPredefined) {
+                                // Predefined tax type — single batched update
+                                onUpdate({
+                                    tax_type_id: value,
+                                    is_custom: false,
+                                    custom_name: "",
+                                });
+                            } else {
+                                // Custom tax name — single batched update
+                                onUpdate({
+                                    custom_name: value,
+                                    is_custom: true,
+                                    tax_type_id: "",
+                                });
+                            }
+                        }}
+                        options={allOptions}
+                        placeholder="Search or create a tax type..."
+                        creatable={true}
+                        helpText={
+                            entry.is_custom
+                                ? `Custom tax: "${entry.custom_name}"`
+                                : "Search for a tax type or type to create a custom one"
+                        }
+                    />
                 </div>
 
                 {/* Remove Button */}
@@ -256,7 +289,7 @@ function TaxTypeEntry({
                                 ? "e.g., 2.5"
                                 : "e.g., 1500"
                         }
-                        step={entry.amount_type === "percentage" ? "0.01" : "1"}
+                        step="any"
                         min="0"
                         className="w-full px-4 py-3 pr-12 border border-border-gray rounded-lg text-base font-sans focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
                     />

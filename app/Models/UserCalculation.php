@@ -21,7 +21,9 @@ class UserCalculation extends Model
         'ip_address',
         'gross_income',
         'currency',
+        'tax_year',
         'citizenship_country_code',
+        'domicile_state_id',
         'additional_inputs',
         'included_tax_types',
         'taxable_income',
@@ -46,6 +48,7 @@ class UserCalculation extends Model
         'completed_calculation'  => 'boolean',
         'started_at'             => 'datetime',
         'completed_at'           => 'datetime',
+        'tax_year'               => 'integer',
     ];
 
     /**
@@ -76,6 +79,14 @@ class UserCalculation extends Model
     public function citizenshipCountry()
     {
         return $this->belongsTo(Country::class, 'citizenship_country_code', 'iso_code');
+    }
+
+    /**
+     * Get the domicile state
+     */
+    public function domicileState()
+    {
+        return $this->belongsTo(State::class, 'domicile_state_id');
     }
 
     /**

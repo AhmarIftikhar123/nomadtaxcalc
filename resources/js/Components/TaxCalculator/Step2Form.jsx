@@ -5,13 +5,14 @@ import {
     Search,
     Plus,
     CheckCircle2,
-    AlertTriangle,
+    TriangleAlert,
     Loader,
     ArrowRight,
     ChevronLeft,
 } from "lucide-react";
 import ResidencyPeriodItem from "./ResidencyPeriodItem";
 import InputError from "@/Components/InputError";
+import Select from "@/Components/Form/Select";
 
 const MONTHS = [
     "Jan",
@@ -68,22 +69,23 @@ export default function Step2Form({
     onSubmit,
     onBack,
     countries = [], // Add countries prop from backend
+    states = [],
+    taxTypes = [],
+    taxYear,
 }) {
-    const [searchTerm, setSearchTerm] = useState("");
     const [selectedCountry, setSelectedCountry] = useState(null);
+    const [selectedStateId, setSelectedStateId] = useState("");
     const [daysSpent, setDaysSpent] = useState("");
     const [residencyPeriods, setResidencyPeriods] = useState(
         data.residency_periods || [],
     );
 
-    // Filter countries
-    const filteredCountries = useMemo(() => {
-        return countries.filter(
-            (c) =>
-                c.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                !residencyPeriods.some((r) => r.country_id === c.id),
-        );
-    }, [searchTerm, residencyPeriods, countries]);
+    // Filter countries (exclude already-added ones) and format for Select component
+    const countryOptions = useMemo(() => {
+        return countries
+            .filter((c) => !residencyPeriods.some((r) => r.country_id === c.id))
+            .map((c) => ({ value: c.id.toString(), label: c.name }));
+    }, [countries, residencyPeriods]);
 
     // Calculate total days
     const totalDays = useMemo(() => {
@@ -114,27 +116,56 @@ export default function Step2Form({
             return;
         }
 
+        // Find default income tax type
+        const incomeTaxType = taxTypes.find((t) => t.key === "");
+
         const newPeriod = {
             id: Date.now(),
             country_id: selectedCountry.id,
+            state_id: selectedCountry?.code === "US" ? selectedStateId : null,
+            state_name:
+                selectedCountry?.code === "US"
+                    ? states.find((s) => s.id.toString() === selectedStateId)
+                          ?.name
+                    : null,
             country_name: selectedCountry.name,
             country_code: selectedCountry.code,
             days: parseInt(daysSpent),
             startMonth: 0,
             endMonth: 11,
             isTaxResident: parseInt(daysSpent) >= 183,
+            selected_tax_types: incomeTaxType
+                ? [
+                      {
+                          id: Date.now(),
+                          tax_type_id: incomeTaxType.id.toString(),
+                          custom_name: "",
+                          amount_type: "percentage",
+                          amount: "",
+                          is_custom: false,
+                      },
+                  ]
+                : [],
         };
 
         const updated = [...residencyPeriods, newPeriod];
         setResidencyPeriods(updated);
         setSelectedCountry(null);
+        setSelectedStateId("");
         setDaysSpent("");
-        setSearchTerm("");
         setData("residency_periods", updated);
     };
 
     const handleRemovePeriod = (id) => {
         const updated = residencyPeriods.filter((p) => p.id !== id);
+        setResidencyPeriods(updated);
+        setData("residency_periods", updated);
+    };
+
+    const handleUpdatePeriod = (id, field, value) => {
+        const updated = residencyPeriods.map((p) =>
+            p.id === id ? { ...p, [field]: value } : p,
+        );
         setResidencyPeriods(updated);
         setData("residency_periods", updated);
     };
@@ -152,7 +183,7 @@ export default function Step2Form({
             {/* Fiscal Year Timeline */}
             <div className="bg-light rounded-xl border border-border-gray p-6 md:p-8">
                 <h3 className="text-xl font-bold text-primary mb-2">
-                    Fiscal Year 2024
+                    Fiscal Year {taxYear || 2026}
                 </h3>
                 <p className="text-sm text-gray mb-6">{totalDays}/365 Days</p>
 
@@ -183,17 +214,17 @@ export default function Step2Form({
 
                 {!isYearComplete && daysRemaining > 0 && (
                     <div className="bg-primary bg-opacity-5 border border-primary border-opacity-20 rounded-lg p-4 flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                        <TriangleAlert className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-primary">
                             You have <strong>{daysRemaining} days</strong>{" "}
-                            remaining to account for in 2024.
+                            remaining to account for in {taxYear || 2026}.
                         </p>
                     </div>
                 )}
 
                 {hasErrors && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <TriangleAlert className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-red-700">
                             Total days exceed 365. Please adjust your entries.
                         </p>
@@ -207,58 +238,63 @@ export default function Step2Form({
                     Add Residency Period
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-4">
                     {/* Country Search */}
-                    <div className="md:col-span-2">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-3.5 w-5 h-5 text-gray pointer-events-none" />
-                            <input
-                                type="text"
-                                placeholder="Search country..."
-                                value={
-                                    searchTerm || selectedCountry?.name || ""
-                                }
-                                onChange={(e) => {
-                                    setSearchTerm(e.target.value);
-                                    if (selectedCountry)
-                                        setSelectedCountry(null);
-                                }}
-                                onFocus={() => {
-                                    // kept empty to allow user to edit
-                                }}
-                                className="w-full pl-10 pr-4 py-3 border border-border-gray rounded-lg text-base font-sans focus:ring-2 focus:ring-primary focus:ring-opacity-50 focus:border-transparent outline-none transition"
-                            />
-
-                            {/* Country Dropdown */}
-                            {searchTerm && filteredCountries.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-border-gray rounded-lg shadow-lg max-h-64 overflow-y-auto z-10">
-                                    {filteredCountries.map((country) => (
-                                        <button
-                                            key={country.id}
-                                            type="button"
-                                            onClick={() => {
-                                                setSelectedCountry(country);
-                                                setSearchTerm("");
-                                            }}
-                                            className="w-full text-left px-4 py-3 hover:bg-light transition border-b border-border-gray last:border-b-0"
-                                        >
-                                            <p className="font-medium text-primary">
-                                                {country.name}
-                                            </p>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                    <div
+                        className={
+                            selectedCountry?.code === "US"
+                                ? "xl:col-span-5"
+                                : "xl:col-span-8"
+                        }
+                    >
+                        <Select
+                            placeholder="Search country..."
+                            value={selectedCountry?.id?.toString() || ""}
+                            onChange={(val) => {
+                                const country = countries.find(
+                                    (c) => c.id.toString() === val,
+                                );
+                                setSelectedCountry(country || null);
+                                setSelectedStateId("");
+                            }}
+                            options={countryOptions}
+                        />
                     </div>
 
+                    {/* State Search (Only for US) */}
+                    {selectedCountry?.code === "US" && (
+                        <div className="xl:col-span-4">
+                            <Select
+                                placeholder="Select State..."
+                                value={selectedStateId}
+                                onChange={(val) => setSelectedStateId(val)}
+                                options={states.map((s) => ({
+                                    value: s.id.toString(),
+                                    label: s.name,
+                                }))}
+                            />
+                        </div>
+                    )}
+
                     {/* Days Spent */}
-                    <div>
+                    <div
+                        className={
+                            selectedCountry?.code === "US"
+                                ? "xl:col-span-3"
+                                : "xl:col-span-4"
+                        }
+                    >
                         <input
                             type="number"
                             placeholder="Days spent"
                             value={daysSpent}
                             onChange={(e) => setDaysSpent(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleAddPeriod();
+                                }
+                            }}
                             min="1"
                             max={daysRemaining}
                             className={`w-full px-4 py-3 border rounded-lg text-base font-sans focus:ring-2 focus:ring-opacity-50 focus:border-transparent outline-none transition ${
@@ -282,6 +318,7 @@ export default function Step2Form({
                     onClick={handleAddPeriod}
                     disabled={
                         !selectedCountry ||
+                        (selectedCountry?.code === "US" && !selectedStateId) ||
                         !daysSpent ||
                         parseInt(daysSpent) <= 0 ||
                         isOverLimit
@@ -299,12 +336,21 @@ export default function Step2Form({
                     {residencyPeriods.map((period) => (
                         <ResidencyPeriodItem
                             key={period.id}
-                            country={period.country_name}
+                            country={
+                                period.state_name
+                                    ? `${period.country_name} (${period.state_name})`
+                                    : period.country_name
+                            }
                             country_code={period.country_code}
                             days={period.days}
                             dateRange={`Jan 1 - Dec 31`}
                             isTaxResident={period.isTaxResident}
+                            selectedTaxTypes={period.selected_tax_types}
+                            availableTaxTypes={taxTypes}
                             onRemove={() => handleRemovePeriod(period.id)}
+                            onUpdate={(field, value) =>
+                                handleUpdatePeriod(period.id, field, value)
+                            }
                         />
                     ))}
                 </div>

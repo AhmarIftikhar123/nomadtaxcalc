@@ -3,7 +3,11 @@
 import React from "react";
 import { Download, Eye } from "lucide-react";
 
-export default function DetailedTaxBreakdown({ breakdownData, currency }) {
+export default function DetailedTaxBreakdown({
+    breakdownData,
+    currency,
+    taxYear,
+}) {
     const formatCurrency = (value) => {
         return new Intl.NumberFormat("en-US", {
             style: "currency",
@@ -16,6 +20,7 @@ export default function DetailedTaxBreakdown({ breakdownData, currency }) {
     const handleDownloadCSV = () => {
         const headers = [
             "Country",
+            "Year",
             "Income Source",
             "Taxable Amount",
             "Tax Rate",
@@ -23,6 +28,7 @@ export default function DetailedTaxBreakdown({ breakdownData, currency }) {
         ];
         const rows = breakdownData.map((item) => [
             item.country_name,
+            taxYear || 2026,
             "Global Income",
             formatCurrency(item.taxable_income),
             `${item.effective_rate}%`,
@@ -38,7 +44,7 @@ export default function DetailedTaxBreakdown({ breakdownData, currency }) {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = "tax-breakdown.csv";
+        link.download = `tax-breakdown-${taxYear || 2026}.csv`;
         link.click();
         window.URL.revokeObjectURL(url);
     };
@@ -67,6 +73,9 @@ export default function DetailedTaxBreakdown({ breakdownData, currency }) {
                             <th className="text-left py-4 px-4 font-bold text-primary text-sm uppercase tracking-wide">
                                 Country
                             </th>
+                            <th className="text-center py-4 px-4 font-bold text-primary text-sm uppercase tracking-wide">
+                                Year
+                            </th>
                             <th className="text-left py-4 px-4 font-bold text-primary text-sm uppercase tracking-wide">
                                 Income Source
                             </th>
@@ -89,11 +98,13 @@ export default function DetailedTaxBreakdown({ breakdownData, currency }) {
                             >
                                 <td className="py-4 px-4">
                                     <div className="flex items-center gap-3">
-                                        {/* Flag handled by backend or CSS class if available, omitted for now */}
                                         <span className="font-medium text-primary">
                                             {item.country_name}
                                         </span>
                                     </div>
+                                </td>
+                                <td className="py-4 px-4 text-center text-primary font-medium">
+                                    {taxYear || 2026}
                                 </td>
                                 <td className="py-4 px-4 text-gray text-sm">
                                     Global Income
@@ -115,7 +126,7 @@ export default function DetailedTaxBreakdown({ breakdownData, currency }) {
                     <tfoot>
                         <tr className="bg-light border-t-2 border-primary">
                             <td
-                                colSpan="4"
+                                colSpan="5"
                                 className="py-4 px-4 font-bold text-primary text-right"
                             >
                                 Total Tax Liability

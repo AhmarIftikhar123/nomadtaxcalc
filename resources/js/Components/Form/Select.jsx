@@ -19,6 +19,8 @@ export default function Select({
     className = "",
     disabled = false,
     helpText,
+    creatable = false,
+    onCreateOption,
 }) {
     const [query, setQuery] = useState("");
 
@@ -30,9 +32,7 @@ export default function Select({
         query === ""
             ? options
             : options.filter((option) =>
-                  option.label
-                      .toLowerCase()
-                      .includes(query.toLowerCase())
+                  option.label.toLowerCase().includes(query.toLowerCase()),
               );
 
     // Handle selection
@@ -63,7 +63,7 @@ export default function Select({
                     value={value}
                     onChange={handleChange}
                     disabled={disabled}
-                     immediate // Opens dropdown immediately on focus
+                    immediate // Opens dropdown immediately on focus
                 >
                     {({ open }) => (
                         <>
@@ -118,42 +118,62 @@ export default function Select({
                                 transition
                                 className="absolute z-50 mt-1 max-h-60 w-[var(--input-width)] overflow-auto rounded-lg bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition duration-100 ease-in data-[leave]:data-[closed]:opacity-0"
                             >
-                                {filteredOptions.length === 0 ? (
+                                {filteredOptions.length === 0 && !creatable ? (
                                     <div className="relative cursor-default select-none py-3 px-4 text-gray-400">
                                         {query === ""
                                             ? "No options available"
                                             : "No results found"}
                                     </div>
                                 ) : (
-                                    filteredOptions.map((option) => (
-                                        <ComboboxOption
-                                            key={option.value}
-                                            value={option.value}
-                                            className="relative cursor-pointer select-none py-3 pl-4 pr-10 data-[focus]:bg-light data-[focus]:text-primary text-gray-900"
-                                        >
-                                            {({ selected }) => (
-                                                <>
-                                                    <span
-                                                        className={`block truncate ${
-                                                            selected
-                                                                ? "font-semibold"
-                                                                : "font-normal"
-                                                        }`}
-                                                    >
-                                                        {option.label}
-                                                    </span>
-                                                    {selected && (
-                                                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-primary">
-                                                            <Check
-                                                                className="h-5 w-5"
-                                                                aria-hidden="true"
-                                                            />
+                                    <>
+                                        {filteredOptions.map((option) => (
+                                            <ComboboxOption
+                                                key={option.value}
+                                                value={option.value}
+                                                className="relative cursor-pointer select-none py-3 pl-4 pr-10 data-[focus]:bg-light data-[focus]:text-primary text-gray-900"
+                                            >
+                                                {({ selected }) => (
+                                                    <>
+                                                        <span
+                                                            className={`block truncate ${
+                                                                selected
+                                                                    ? "font-semibold"
+                                                                    : "font-normal"
+                                                            }`}
+                                                        >
+                                                            {option.label}
                                                         </span>
-                                                    )}
-                                                </>
+                                                        {selected && (
+                                                            <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-primary">
+                                                                <Check
+                                                                    className="h-5 w-5"
+                                                                    aria-hidden="true"
+                                                                />
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </ComboboxOption>
+                                        ))}
+
+                                        {/* Creatable: Show "Create" option if query exists and no exact match */}
+                                        {creatable &&
+                                            query !== "" &&
+                                            !filteredOptions.some(
+                                                (opt) =>
+                                                    opt.label.toLowerCase() ===
+                                                    query.toLowerCase(),
+                                            ) && (
+                                                <ComboboxOption
+                                                    value={query}
+                                                    className="relative cursor-pointer select-none py-3 pl-4 pr-10 data-[focus]:bg-primary data-[focus]:bg-opacity-10 text-primary border-t border-border-gray"
+                                                >
+                                                    <span className="block truncate font-medium">
+                                                        Create: "{query}"
+                                                    </span>
+                                                </ComboboxOption>
                                             )}
-                                        </ComboboxOption>
-                                    ))
+                                    </>
                                 )}
                             </ComboboxOptions>
                         </>

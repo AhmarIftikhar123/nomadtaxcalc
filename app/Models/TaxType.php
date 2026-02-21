@@ -12,6 +12,7 @@ class TaxType extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'user_id',
         'key',
         'name',
         'description',
@@ -25,6 +26,14 @@ class TaxType extends Model
         'is_active'  => 'boolean',
         'sort_order' => 'integer',
     ];
+
+    /**
+     * Get the user that owns this tax type (null for system defaults)
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * Get all tax brackets for this tax type
@@ -48,5 +57,13 @@ class TaxType extends Model
     public function scopeDefault($query)
     {
         return $query->where('is_default', true);
+    }
+
+    /**
+     * Scope for system default tax types (user_id is null)
+     */
+    public function scopeSystemDefaults($query)
+    {
+        return $query->whereNull('user_id');
     }
 }

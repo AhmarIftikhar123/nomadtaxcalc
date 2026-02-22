@@ -6,13 +6,13 @@ import {
     Plus,
     CheckCircle2,
     TriangleAlert,
-    Loader,
     ArrowRight,
     ChevronLeft,
 } from "lucide-react";
 import ResidencyPeriodItem from "./ResidencyPeriodItem";
 import InputError from "@/Components/InputError";
 import Select from "@/Components/Form/Select";
+import Loader from "@/Components/ui/Loader";
 
 const MONTHS = [
     "Jan",
@@ -68,10 +68,11 @@ export default function Step2Form({
     processing,
     onSubmit,
     onBack,
-    countries = [], // Add countries prop from backend
+    countries = [],
     states = [],
     taxTypes = [],
     taxYear,
+    step1Currency = "USD", // currency chosen in Step 1
 }) {
     const [selectedCountry, setSelectedCountry] = useState(null);
     const [selectedStateId, setSelectedStateId] = useState("");
@@ -79,6 +80,7 @@ export default function Step2Form({
     const [residencyPeriods, setResidencyPeriods] = useState(
         data.residency_periods || [],
     );
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Filter countries (exclude already-added ones) and format for Select component
     const countryOptions = useMemo(() => {
@@ -130,7 +132,10 @@ export default function Step2Form({
                     : null,
             country_name: selectedCountry.name,
             country_code: selectedCountry.code,
+            country_tax_basis: selectedCountry.tax_basis ?? "worldwide",
             days: parseInt(daysSpent),
+            local_income: "",
+            local_income_currency: step1Currency, // default to step1 currency
             startMonth: 0,
             endMonth: 11,
             isTaxResident: parseInt(daysSpent) >= 183,
@@ -172,10 +177,14 @@ export default function Step2Form({
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!isYearComplete) {
+        if (!isYearComplete || isSubmitting || processing) {
             return;
         }
+        setIsSubmitting(true);
         onSubmit();
+
+        // Let processing prop take over after a tiny delay
+        setTimeout(() => setIsSubmitting(false), 1000);
     };
 
     return (
@@ -341,8 +350,15 @@ export default function Step2Form({
                                     ? `${period.country_name} (${period.state_name})`
                                     : period.country_name
                             }
+                            country_name={period.country_name}
                             country_code={period.country_code}
+                            country_tax_basis={period.country_tax_basis}
                             days={period.days}
+                            localIncome={period.local_income}
+                            localIncomeCurrency={
+                                period.local_income_currency ?? step1Currency
+                            }
+                            step1Currency={step1Currency}
                             dateRange={`Jan 1 - Dec 31`}
                             isTaxResident={period.isTaxResident}
                             selectedTaxTypes={period.selected_tax_types}
@@ -368,12 +384,12 @@ export default function Step2Form({
                 </button>
                 <button
                     type="submit"
-                    disabled={processing || !isYearComplete}
+                    disabled={isSubmitting || processing || !isYearComplete}
                     className="flex-1 bg-primary hover:bg-dark disabled:bg-gray disabled:cursor-not-allowed text-light font-bold py-4 px-6 rounded-lg transition-all flex items-center justify-center gap-2"
                 >
-                    {processing ? (
+                    {isSubmitting || processing ? (
                         <>
-                            <Loader className="w-5 h-5 animate-spin" />
+                            <Loader />
                             Processing...
                         </>
                     ) : (

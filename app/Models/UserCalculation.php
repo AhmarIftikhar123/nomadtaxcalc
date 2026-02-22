@@ -5,14 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 
 class UserCalculation extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'session_uuid',
+        'user_id',
         'step_reached',
         'started_at',
         'completed_at',
@@ -39,34 +38,28 @@ class UserCalculation extends Model
     ];
 
     protected $casts = [
-        'additional_inputs'      => 'array',
-        'included_tax_types'     => 'array',
-        'tax_breakdown'          => 'array',
-        'residency_warnings'     => 'array',
-        'treaty_applied'         => 'array',
-        'feie_result'            => 'array',
-        'completed_calculation'  => 'boolean',
-        'started_at'             => 'datetime',
-        'completed_at'           => 'datetime',
-        'tax_year'               => 'integer',
+        'additional_inputs'     => 'array',
+        'included_tax_types'    => 'array',
+        'tax_breakdown'         => 'array',
+        'residency_warnings'    => 'array',
+        'treaty_applied'        => 'array',
+        'feie_result'           => 'array',
+        'completed_calculation' => 'boolean',
+        'started_at'            => 'datetime',
+        'completed_at'          => 'datetime',
+        'tax_year'              => 'integer',
     ];
 
     /**
-     * Boot function to auto-generate session_uuid
+     * The authenticated user who saved this calculation.
      */
-    protected static function boot()
+    public function user()
     {
-        parent::boot();
-
-        static::creating(function ($model) {
-            if (!$model->session_uuid) {
-                $model->session_uuid = (string) Str::uuid();
-            }
-        });
+        return $this->belongsTo(User::class);
     }
 
     /**
-     * Get the countries visited for this calculation
+     * Get the countries visited for this calculation.
      */
     public function countriesVisited()
     {
@@ -74,7 +67,7 @@ class UserCalculation extends Model
     }
 
     /**
-     * Get the citizenship country
+     * Get the citizenship country.
      */
     public function citizenshipCountry()
     {
@@ -82,7 +75,7 @@ class UserCalculation extends Model
     }
 
     /**
-     * Get the domicile state
+     * Get the domicile state.
      */
     public function domicileState()
     {
@@ -90,7 +83,7 @@ class UserCalculation extends Model
     }
 
     /**
-     * Get the primary country
+     * Get the primary (citizenship) country.
      */
     public function country()
     {

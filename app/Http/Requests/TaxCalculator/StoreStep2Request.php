@@ -27,12 +27,14 @@ class StoreStep2Request extends FormRequest
             'residency_periods.*.country_id' => 'required|exists:countries,id|distinct',
             'residency_periods.*.state_id' => 'nullable|exists:states,id',
             'residency_periods.*.days' => 'required|integer|min:1|max:365',
-            'residency_periods.*.selected_tax_types' => 'nullable|array',
-            'residency_periods.*.selected_tax_types.*.is_custom' => 'nullable|boolean',
+            'residency_periods.*.selected_tax_types'               => 'nullable|array',
+            'residency_periods.*.selected_tax_types.*.is_custom'   => 'nullable|boolean',
             'residency_periods.*.selected_tax_types.*.tax_type_id' => 'nullable',
             'residency_periods.*.selected_tax_types.*.custom_name' => 'nullable|string|max:100',
             'residency_periods.*.selected_tax_types.*.amount_type' => 'nullable|in:percentage,flat',
-            'residency_periods.*.selected_tax_types.*.amount' => 'nullable|numeric|min:0',
+            'residency_periods.*.selected_tax_types.*.amount'      => 'nullable|numeric|min:0',
+            'residency_periods.*.local_income'                     => 'nullable|numeric|min:0',
+            'residency_periods.*.local_income_currency'             => 'nullable|string|size:3',
         ];
     }
 

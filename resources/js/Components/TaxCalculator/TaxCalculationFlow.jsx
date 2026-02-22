@@ -18,7 +18,6 @@ import {
 
 export default function TaxCalculationFlow({ result }) {
     const [isOpen, setIsOpen] = useState(true);
-    console.group(result);
     const formatCurrency = (value) => {
         return new Intl.NumberFormat("en-US", {
             style: "currency",
@@ -38,7 +37,6 @@ export default function TaxCalculationFlow({ result }) {
 
     // Helper to find tax calculation details for a country
     const getTaxDetails = (countryId) => {
-        console.group(countryId, breakdown_by_country);
         return breakdown_by_country.find((c) => c.country_id === countryId);
     };
 
@@ -209,12 +207,59 @@ export default function TaxCalculationFlow({ result }) {
                                                                 </span>
                                                             </div>
                                                             <div className="text-xs text-gray">
-                                                                (Global Income ÷
-                                                                365) ×{" "}
-                                                                {
-                                                                    country.days_spent
-                                                                }{" "}
-                                                                days
+                                                                {taxDetails.tax_basis ===
+                                                                    "territorial" ||
+                                                                taxDetails.tax_basis ===
+                                                                    "remittance" ? (
+                                                                    <>
+                                                                        Locally
+                                                                        earned
+                                                                        income
+                                                                        in{" "}
+                                                                        <strong>
+                                                                            {
+                                                                                country.country_name
+                                                                            }
+                                                                        </strong>
+                                                                        {/* Show conversion if currencies differ */}
+                                                                        {taxDetails.local_income_currency &&
+                                                                            taxDetails.local_income_currency !==
+                                                                                result.currency &&
+                                                                            taxDetails.local_income_original !=
+                                                                                null && (
+                                                                                <span className="ml-1 text-gray/70">
+                                                                                    (
+                                                                                    {
+                                                                                        taxDetails.local_income_currency
+                                                                                    }{" "}
+                                                                                    {Number(
+                                                                                        taxDetails.local_income_original,
+                                                                                    ).toLocaleString()}{" "}
+                                                                                    &rarr;{" "}
+                                                                                    {
+                                                                                        result.currency
+                                                                                    }{" "}
+                                                                                    {Number(
+                                                                                        taxDetails.allocated_income,
+                                                                                    ).toLocaleString()}
+
+                                                                                    )
+                                                                                </span>
+                                                                            )}
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        (Global
+                                                                        Income
+                                                                        &divide;
+                                                                        365)
+                                                                        &times;{" "}
+                                                                        {
+                                                                            country.days_spent
+                                                                        }{" "}
+                                                                        days
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
 
@@ -329,9 +374,10 @@ export default function TaxCalculationFlow({ result }) {
                                                                                                             )}
                                                                                                         </td>
                                                                                                         <td className="py-2 px-3 text-right text-gray">
-                                                                                                            {
-                                                                                                                bracket.rate
-                                                                                                            }
+                                                                                                            {Math.round(
+                                                                                                                bracket.rate,
+                                                                                                            )}
+
                                                                                                             %
                                                                                                         </td>
                                                                                                         <td className="py-2 px-3 text-right font-bold text-primary">

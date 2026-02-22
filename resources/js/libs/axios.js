@@ -2,7 +2,7 @@ import axios from "axios";
 import { router } from "@inertiajs/react";
 
 const web = axios.create({
-    baseURL: "/",
+    baseURL: "/inertia/public",
     withCredentials: true, // session + CSRF
     headers: {
         "X-Requested-With": "XMLHttpRequest",

@@ -1,13 +1,26 @@
 "use client";
 
-import React from "react";
-import { Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+    Trash2,
+    AlertTriangle,
+    CheckCircle2,
+    Info,
+    Loader2,
+} from "lucide-react";
 import TaxTypeSelector from "./TaxTypeSelector";
+import Select from "@/Components/Form/Select";
+import web from "@/libs/axios";
+
 export default function ResidencyPeriodItem({
     country,
     country_name,
     country_code,
+    country_tax_basis,
     days,
+    localIncome,
+    localIncomeCurrency,
+    step1Currency = "USD",
     onRemove,
     dateRange,
     isTaxResident,
@@ -16,8 +29,45 @@ export default function ResidencyPeriodItem({
     onUpdate,
 }) {
     const countryDisplayName = country_name || country;
-    // Use ISO code directly from backend — no hardcoded map needed
     const flagCode = (country_code || "US").toLowerCase();
+    const isTerritorial =
+        country_tax_basis === "territorial" ||
+        country_tax_basis === "remittance";
+
+    // ─── Lazy currency fetch ──────────────────────────────────────────────────
+    // Only fires once when the territorial section first becomes visible.
+    const [availableCurrencies, setAvailableCurrencies] = useState([]);
+    const [currenciesLoading, setCurrenciesLoading] = useState(false);
+    const fetchedRef = useRef(false);
+
+    useEffect(() => {
+        if (!isTerritorial || fetchedRef.current) return;
+        fetchedRef.current = true;
+        setCurrenciesLoading(true);
+
+        web.get("/currencies")
+            .then((response) => {
+                const data = response.data;
+                // data is [{value:'EUR', label:'EUR — Euro'}, ...]
+                if (Array.isArray(data) && data.length > 0) {
+                    setAvailableCurrencies(data);
+                } else {
+                    setAvailableCurrencies([
+                        { value: step1Currency, label: step1Currency },
+                    ]);
+                }
+            })
+            .catch(() => {
+                // API unavailable → show only step1 currency
+                setAvailableCurrencies([
+                    { value: step1Currency, label: step1Currency },
+                ]);
+            })
+            .finally(() => setCurrenciesLoading(false));
+    }, [isTerritorial, step1Currency]);
+
+    // Effective currency shown in dropdown (fallback = step1 currency)
+    const activeCurrency = localIncomeCurrency || step1Currency;
 
     return (
         <div className="space-y-2">
@@ -77,6 +127,78 @@ export default function ResidencyPeriodItem({
                     </button>
                 </div>
             </div>
+
+            {/* ── Territorial / Remittance Income Field ──────────────────────── */}
+            {isTerritorial && (
+                <div className="ml-16 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-2 mb-3">
+                        <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-blue-800">
+                            <strong>{countryDisplayName}</strong> uses{" "}
+                            {country_tax_basis} taxation — only income earned{" "}
+                            <em>inside</em> {countryDisplayName} is taxable.
+                        </p>
+                    </div>
+                    <label className="block text-sm font-semibold text-blue-900 mb-2">
+                        How much did you earn while in {countryDisplayName}?
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                        {/* Amount Input */}
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={localIncome ?? ""}
+                            onChange={(e) =>
+                                onUpdate &&
+                                onUpdate("local_income", e.target.value)
+                            }
+                            placeholder="0.00"
+                            className="w-44 px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                        />
+
+                        {/* Currency Selector — lazy-loaded */}
+                        {currenciesLoading ? (
+                            <div className="flex items-center gap-1 text-blue-500 text-sm">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Loading…</span>
+                            </div>
+                        ) : availableCurrencies.length > 1 ? (
+                            <div className="w-52">
+                                <Select
+                                    value={activeCurrency}
+                                    onChange={(val) =>
+                                        onUpdate &&
+                                        onUpdate("local_income_currency", val)
+                                    }
+                                    options={availableCurrencies}
+                                    placeholder="Currency…"
+                                    className="!py-2 !px-4"
+                                />
+                            </div>
+                        ) : (
+                            /* Fallback — API unavailable, show plain text */
+                            <span className="text-sm text-blue-700 font-medium">
+                                {activeCurrency}
+                            </span>
+                        )}
+                    </div>
+
+                    {activeCurrency !== step1Currency && (
+                        <p className="text-xs text-blue-600 mt-2">
+                            Amount will be converted from{" "}
+                            <strong>{activeCurrency}</strong> to{" "}
+                            <strong>{step1Currency}</strong> for tax
+                            calculation.
+                        </p>
+                    )}
+
+                    <p className="text-xs text-blue-600 mt-1">
+                        Leave 0 if all income was earned remotely.
+                    </p>
+                </div>
+            )}
 
             {/* Tax Type Selector */}
             <div className="pl-16">

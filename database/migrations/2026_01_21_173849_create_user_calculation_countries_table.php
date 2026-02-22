@@ -28,6 +28,7 @@ return new class extends Migration
                 ->nullOnDelete();
 
             $table->integer('days_spent');
+            $table->decimal('local_income', 12, 2)->nullable(); // For territorial/remittance countries
             $table->boolean('is_tax_resident')->default(false);
 
             // Computed values

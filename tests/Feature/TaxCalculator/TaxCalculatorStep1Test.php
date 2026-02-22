@@ -1,14 +1,15 @@
 <?php
 
 /**
- * Step 1 Service Tests — TaxCalculatorService::saveStep1Data
+ * Step 1 Service Tests — TaxCalculatorService::buildSessionStep1Payload
  *
- * Tests the service layer directly since the HTTP layer has a
- * pre-existing 404 issue with all Inertia routes in tests.
+ * The anonymous flow no longer writes to the DB.
+ * These tests verify the session payload is built correctly.
  */
 
 use App\Models\Country;
 use App\Models\UserCalculation;
+use App\Models\User;
 use App\Services\TaxCalculator\TaxCalculatorService;
 
 beforeEach(function () {
@@ -16,66 +17,103 @@ beforeEach(function () {
     $this->country = Country::factory()->create();
 });
 
-// ─── saveStep1Data ────────────────────────────────────────────────────────────
+// ─── buildSessionStep1Payload ──────────────────────────────────────────────────
 
-it('creates a new UserCalculation record on first submission', function () {
-    $result = $this->service->saveStep1Data([
+it('builds a correct session payload from step 1 input', function () {
+    $payload = $this->service->buildSessionStep1Payload([
         'annual_income'          => 100000,
         'currency'               => 'USD',
         'tax_year'               => 2026,
         'citizenship_country_id' => $this->country->id,
-    ], null);
+    ]);
 
-    expect($result)->toBeInstanceOf(UserCalculation::class);
-    expect($result->gross_income)->toEqual(100000);
-    expect($result->currency)->toBe('USD');
-    expect($result->tax_year)->toEqual(2026);
-    expect($result->citizenship_country_code)->toBe($this->country->iso_code);
-
-    $this->assertDatabaseHas('user_calculations', [
-        'gross_income' => 100000,
-        'currency'     => 'USD',
-        'tax_year'     => 2026,
+    expect($payload)->toMatchArray([
+        'annual_income'            => 100000.0,
+        'currency'                 => 'USD',
+        'tax_year'                 => 2026,
+        'citizenship_country_id'   => $this->country->id,
+        'citizenship_country_code' => $this->country->iso_code,
     ]);
 });
 
-it('updates existing UserCalculation on re-submission with same session', function () {
-    $first = $this->service->saveStep1Data([
-        'annual_income'          => 100000,
-        'currency'               => 'USD',
-        'tax_year'               => 2025,
-        'citizenship_country_id' => $this->country->id,
-    ], null);
-
-    $second = $this->service->saveStep1Data([
-        'annual_income'          => 150000,
+it('does NOT write any record to the database', function () {
+    $this->service->buildSessionStep1Payload([
+        'annual_income'          => 50000,
         'currency'               => 'EUR',
         'tax_year'               => 2026,
         'citizenship_country_id' => $this->country->id,
-    ], $first->session_uuid);
+    ]);
 
-    expect(UserCalculation::count())->toBe(1);
-    expect($second->gross_income)->toEqual(150000);
-    expect($second->currency)->toBe('EUR');
-    expect($second->tax_year)->toEqual(2026);
+    expect(UserCalculation::count())->toBe(0);
 });
 
-it('generates a session UUID automatically', function () {
-    $result = $this->service->saveStep1Data([
-        'annual_income'          => 50000,
-        'currency'               => 'GBP',
+it('includes domicile_state_id when provided', function () {
+    $payload = $this->service->buildSessionStep1Payload([
+        'annual_income'          => 80000,
+        'currency'               => 'USD',
         'tax_year'               => 2026,
         'citizenship_country_id' => $this->country->id,
-    ], null);
+        'domicile_state_id'      => 5,
+    ]);
 
-    expect($result->session_uuid)->not->toBeNull();
-    expect(strlen($result->session_uuid))->toBe(36); // UUID format
+    expect($payload['domicile_state_id'])->toBe(5);
 });
 
-// ─── getCountries / getCurrencies ──────────────────────────────────────────────
+it('defaults domicile_state_id to null when omitted', function () {
+    $payload = $this->service->buildSessionStep1Payload([
+        'annual_income'          => 80000,
+        'currency'               => 'USD',
+        'tax_year'               => 2026,
+        'citizenship_country_id' => $this->country->id,
+    ]);
+
+    expect($payload['domicile_state_id'])->toBeNull();
+});
+
+// ─── saveCalculationForUser (auth-gated DB save) ──────────────────────────────
+
+it('creates a UserCalculation record for an authenticated user', function () {
+    $user    = User::factory()->create();
+    $country = Country::factory()->create();
+
+    $step1 = [
+        'citizenship_country_id'   => $country->id,
+        'citizenship_country_code' => $country->iso_code,
+        'annual_income'            => 120000,
+        'currency'                 => 'USD',
+        'tax_year'                 => 2026,
+        'domicile_state_id'        => null,
+    ];
+
+    $result = [
+        'annual_income'      => 120000,
+        'currency'           => 'USD',
+        'tax_year'           => 2026,
+        'total_tax'          => 18000,
+        'net_income'         => 102000,
+        'effective_tax_rate' => 15.0,
+        'breakdown_by_country' => [],
+        'residency_warnings' => [],
+        'treaties_applied'   => [],
+        'feie_result'        => null,
+    ];
+
+    $calculation = $this->service->saveCalculationForUser($user->id, $step1, [], $result);
+
+    expect($calculation)->toBeInstanceOf(UserCalculation::class);
+    expect($calculation->user_id)->toBe($user->id);
+    expect($calculation->gross_income)->toEqual(120000);
+
+    $this->assertDatabaseHas('user_calculations', [
+        'user_id'      => $user->id,
+        'gross_income' => 120000,
+        'currency'     => 'USD',
+    ]);
+});
+
+// ─── getCountries / getCurrencies ─────────────────────────────────────────────
 
 it('retrieves active countries', function () {
-    // Create additional active and inactive countries
     Country::factory()->count(2)->create(['is_active' => true]);
     Country::factory()->create(['is_active' => false]);
 
@@ -83,6 +121,13 @@ it('retrieves active countries', function () {
 
     // 1 from beforeEach + 2 active = 3 (inactive excluded)
     expect($countries->count())->toBe(3);
+});
+
+it('includes tax_basis in country list', function () {
+    $countries = $this->service->getCountries();
+    $first = $countries->first();
+
+    expect($first)->toHaveKey('tax_basis');
 });
 
 it('retrieves currencies list', function () {

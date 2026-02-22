@@ -10,7 +10,9 @@ return new class extends Migration
     {
         Schema::create('user_calculations', function (Blueprint $table) {
             $table->id();
-            $table->uuid('session_uuid')->unique();
+
+            // Linked to authenticated user (null = anonymous / unsaved)
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
 
             // Step tracking
             $table->tinyInteger('step_reached')->default(1);
@@ -27,7 +29,7 @@ return new class extends Migration
             $table->year('tax_year')->default(2026);
             $table->string('citizenship_country_code', 2)->nullable();
             $table->json('additional_inputs')->nullable();
-            $table->json('included_tax_types')->nullable(); // e.g. ["income_tax", "social_security"]
+            $table->json('included_tax_types')->nullable();
 
             // Results
             $table->decimal('taxable_income', 12, 2)->nullable();
@@ -48,6 +50,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index(['user_id', 'created_at']);
             $table->index(['country_id', 'created_at', 'currency']);
         });
     }

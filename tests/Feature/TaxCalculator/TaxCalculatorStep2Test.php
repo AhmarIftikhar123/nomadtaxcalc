@@ -1,123 +1,156 @@
 <?php
 
 /**
- * Step 2 Service Tests — TaxCalculatorService::saveStep2Data
+ * Step 2 Service Tests — TaxCalculatorService::calculateTaxesFromSession
  *
- * Tests the service layer directly since the HTTP layer has a
- * pre-existing 404 issue with all Inertia routes in tests.
+ * The anonymous flow no longer writes to the DB.
+ * These tests verify that calculateTaxesFromSession produces correct results
+ * directly from raw period arrays, mirroring what the controller does.
  */
 
 use App\Models\Country;
 use App\Models\TaxType;
-use App\Models\UserCalculation;
-use App\Models\UserCalculationCountry;
+use App\Models\TaxBracket;
 use App\Services\TaxCalculator\TaxCalculatorService;
 
 beforeEach(function () {
-    $this->service = app(TaxCalculatorService::class);
-    $this->country = Country::factory()->create();
-    $this->countryB = Country::factory()->create();
-    $this->incomeTax = TaxType::factory()->incomeTax()->create();
-
-    // Create a calculation (step 1 completed)
-    $this->calculation = $this->service->saveStep1Data([
-        'annual_income'          => 100000,
-        'currency'               => 'USD',
-        'citizenship_country_id' => $this->country->id,
-    ], null);
+    $this->seed(\Database\Seeders\TaxTypeSeeder::class);
+    $this->service    = app(TaxCalculatorService::class);
+    $this->incomeTax  = TaxType::where('key', 'income_tax')->first();
+    $this->country    = Country::factory()->flatTax(15)->create();
+    $this->countryB   = Country::factory()->create(['tax_residency_days' => 183]);
 });
 
-// ─── saveStep2Data ────────────────────────────────────────────────────────────
+// ─── calculateTaxesFromSession ────────────────────────────────────────────────
 
-it('saves residency periods with correct country and days', function () {
-    $this->service->saveStep2Data($this->calculation, [
-        ['country_id' => $this->country->id, 'days' => 200],
-        ['country_id' => $this->countryB->id, 'days' => 165],
+it('returns key result fields from session data', function () {
+    $step1 = [
+        'citizenship_country_id'   => $this->country->id,
+        'citizenship_country_code' => $this->country->iso_code,
+        'annual_income'            => 100000,
+        'currency'                 => 'USD',
+        'tax_year'                 => 2026,
+        'domicile_state_id'        => null,
+    ];
+
+    $periods = [
+        ['country_id' => $this->country->id, 'days' => 365, 'selected_tax_types' => [], 'local_income' => null],
+    ];
+
+    $result = $this->service->calculateTaxesFromSession($step1, $periods);
+
+    expect($result)->toHaveKeys([
+        'annual_income', 'currency', 'total_tax', 'net_income',
+        'effective_tax_rate', 'breakdown_by_country',
     ]);
-
-    $countries = $this->calculation->countriesVisited()->get();
-
-    expect($countries)->toHaveCount(2);
-    expect($countries[0]->country_id)->toBe($this->country->id);
-    expect($countries[0]->days_spent)->toBe(200);
-    expect($countries[1]->country_id)->toBe($this->countryB->id);
-    expect($countries[1]->days_spent)->toBe(165);
 });
 
-it('determines tax residency correctly for each country', function () {
-    // country has 183-day threshold by default (factory)
-    $this->service->saveStep2Data($this->calculation, [
-        ['country_id' => $this->country->id, 'days' => 200],    // above 183 → resident
-        ['country_id' => $this->countryB->id, 'days' => 100],   // below 183 → non-resident
-    ]);
+it('calculates correct flat tax amount from session', function () {
+    $step1 = [
+        'citizenship_country_id'   => $this->country->id,
+        'citizenship_country_code' => $this->country->iso_code,
+        'annual_income'            => 100000,
+        'currency'                 => 'USD',
+        'tax_year'                 => 2026,
+        'domicile_state_id'        => null,
+    ];
 
-    $countries = $this->calculation->countriesVisited()->get();
+    // 365 days → resident → full income allocated → 15% flat = 15000
+    $periods = [
+        ['country_id' => $this->country->id, 'days' => 365, 'selected_tax_types' => [], 'local_income' => null],
+    ];
 
-    expect($countries[0]->is_tax_resident)->toBeTrue();  // 200 > 183
-    expect($countries[1]->is_tax_resident)->toBeFalse(); // 100 < 183
+    $result = $this->service->calculateTaxesFromSession($step1, $periods);
+
+    expect(round($result['total_tax'], 2))->toBe(15000.0);
+    expect(round($result['net_income'], 2))->toBe(85000.0);
 });
 
-it('updates step_reached to 2 after saving', function () {
-    $this->service->saveStep2Data($this->calculation, [
-        ['country_id' => $this->country->id, 'days' => 365],
-    ]);
+it('correctly identifies tax resident vs non-resident periods', function () {
+    $step1 = [
+        'citizenship_country_id'   => $this->country->id,
+        'citizenship_country_code' => $this->country->iso_code,
+        'annual_income'            => 100000,
+        'currency'                 => 'USD',
+        'tax_year'                 => 2026,
+        'domicile_state_id'        => null,
+    ];
 
-    $this->calculation->refresh();
+    // country: 200 days → above 183 threshold → resident
+    // countryB: 165 days → below 183 threshold → non-resident
+    $periods = [
+        ['country_id' => $this->country->id,  'days' => 200, 'selected_tax_types' => [], 'local_income' => null],
+        ['country_id' => $this->countryB->id, 'days' => 165, 'selected_tax_types' => [], 'local_income' => null],
+    ];
 
-    expect($this->calculation->step_reached)->toBe(2);
+    $result = $this->service->calculateTaxesFromSession($step1, $periods);
+
+    $residentData = $result['residency_data'];
+    $mainResident = collect($residentData)->firstWhere('country_id', $this->country->id);
+    $bNonResident = collect($residentData)->firstWhere('country_id', $this->countryB->id);
+
+    expect($mainResident['is_tax_resident'])->toBeTrue();
+    expect($bNonResident['is_tax_resident'])->toBeFalse();
 });
 
-it('replaces existing countries when re-submitting step 2', function () {
-    // First submission
-    $this->service->saveStep2Data($this->calculation, [
-        ['country_id' => $this->country->id, 'days' => 365],
-    ]);
+it('does not write anything to the database during calculation', function () {
+    $step1 = [
+        'citizenship_country_id'   => $this->country->id,
+        'citizenship_country_code' => $this->country->iso_code,
+        'annual_income'            => 80000,
+        'currency'                 => 'USD',
+        'tax_year'                 => 2026,
+        'domicile_state_id'        => null,
+    ];
 
-    expect($this->calculation->countriesVisited()->count())->toBe(1);
+    $periods = [
+        ['country_id' => $this->country->id, 'days' => 365, 'selected_tax_types' => [], 'local_income' => null],
+    ];
 
-    // Second submission (should replace, not append)
-    $this->service->saveStep2Data($this->calculation, [
-        ['country_id' => $this->country->id, 'days' => 200],
-        ['country_id' => $this->countryB->id, 'days' => 165],
-    ]);
+    $this->service->calculateTaxesFromSession($step1, $periods);
 
-    expect($this->calculation->countriesVisited()->count())->toBe(2);
+    expect(\App\Models\UserCalculation::count())->toBe(0);
+    expect(\App\Models\UserCalculationCountry::count())->toBe(0);
 });
 
-it('processes custom taxes when provided', function () {
-    $socialSecurity = TaxType::factory()->socialSecurity()->create();
+// ─── Territorial income (local_income passthrough) ────────────────────────────
 
-    $this->service->saveStep2Data($this->calculation, [
-        [
-            'country_id'   => $this->country->id,
-            'days'         => 365,
-            'custom_taxes' => [
-                [
-                    'tax_type_id'  => $this->incomeTax->id,
-                    'is_custom'    => false,
-                    'amount_type'  => 'percentage',
-                    'amount'       => null,
-                ],
-                [
-                    'tax_type_id'  => $socialSecurity->id,
-                    'is_custom'    => false,
-                    'amount_type'  => 'percentage',
-                    'amount'       => 5.0,
-                ],
-            ],
-        ],
+it('uses local_income for territorial countries instead of days-based allocation', function () {
+    $territorial = Country::factory()->create([
+        'tax_basis'           => 'territorial',
+        'tax_residency_days'  => 1,
+        'has_progressive_tax' => false,
+        'flat_tax_rate'       => 10,
     ]);
 
-    $visitedCountry = $this->calculation->countriesVisited()->first();
-    expect($visitedCountry)->not->toBeNull();
-    expect($visitedCountry->days_spent)->toBe(365);
-});
-
-it('defaults to income tax only when no custom taxes provided', function () {
-    $this->service->saveStep2Data($this->calculation, [
-        ['country_id' => $this->country->id, 'days' => 365],
+    TaxBracket::create([
+        'country_id'  => $territorial->id,
+        'tax_type_id' => $this->incomeTax->id,
+        'min_income'  => 0,
+        'rate'        => 10,
+        'tax_year'    => 2026,
+        'is_active'   => true,
     ]);
 
-    $visitedCountry = $this->calculation->countriesVisited()->first();
-    expect($visitedCountry)->not->toBeNull();
+    $step1 = [
+        'citizenship_country_id'   => $territorial->id,
+        'citizenship_country_code' => $territorial->iso_code,
+        'annual_income'            => 100000,
+        'currency'                 => 'USD',
+        'tax_year'                 => 2026,
+        'domicile_state_id'        => null,
+    ];
+
+    // 200 days in territorial country, earned $30k locally
+    $periods = [
+        ['country_id' => $territorial->id, 'days' => 365, 'selected_tax_types' => [], 'local_income' => 30000],
+    ];
+
+    $result = $this->service->calculateTaxesFromSession($step1, $periods);
+
+    // allocated_income should be $30k, not 100k
+    $bd = $result['breakdown_by_country'][0];
+    expect($bd['allocated_income'])->toBe(30000.0);
+    // 10% flat → 3000
+    expect($bd['tax_due'])->toBe(3000.0);
 });

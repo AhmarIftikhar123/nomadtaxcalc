@@ -1,69 +1,65 @@
 <?php
 
 /**
- * Step 3 Service Tests — TaxCalculatorService::calculateTaxes
+ * Step 3 (Full Pipeline) Tests — TaxCalculatorService::calculateTaxesFromSession
  *
- * Tests the calculateTaxes orchestration method directly since the HTTP
- * layer has a pre-existing 404 issue with all Inertia routes in tests.
+ * These tests verify orchestration of the full tax pipeline from session arrays,
+ * replacing the old calculateTaxes(UserCalculation) approach.
  */
 
 use App\Models\Country;
 use App\Models\TaxType;
-use App\Models\UserCalculation;
-use App\Models\UserCalculationCountry;
 use App\Services\TaxCalculator\TaxCalculatorService;
 
 beforeEach(function () {
     $this->service = app(TaxCalculatorService::class);
-    $this->incomeTax = TaxType::factory()->incomeTax()->create();
-    $this->country = Country::factory()->flatTax(15)->create();
+    $this->seed(\Database\Seeders\TaxTypeSeeder::class);
+    $this->incomeTax = TaxType::where('key', 'income_tax')->first();
+    $this->country   = Country::factory()->flatTax(15)->create();
 });
 
-// ─── calculateTaxes Result Structure ──────────────────────────────────────────
+/**
+ * Helper: build a minimal step1 payload.
+ */
+function makeStep1(Country $c, float $income = 100000, string $currency = 'USD'): array
+{
+    return [
+        'citizenship_country_id'   => $c->id,
+        'citizenship_country_code' => $c->iso_code,
+        'annual_income'            => $income,
+        'currency'                 => $currency,
+        'tax_year'                 => 2026,
+        'domicile_state_id'        => null,
+    ];
+}
+
+/**
+ * Helper: build a single residency period array.
+ */
+function makePeriod(Country $c, int $days, ?float $localIncome = null): array
+{
+    return ['country_id' => $c->id, 'days' => $days, 'selected_tax_types' => [], 'local_income' => $localIncome];
+}
+
+// ─── Result Structure ──────────────────────────────────────────────────────────
 
 it('returns a result array with all required keys', function () {
-    $calculation = UserCalculation::factory()->step2Completed()->create([
-        'country_id'               => $this->country->id,
-        'citizenship_country_code' => $this->country->iso_code,
-        'gross_income'             => 100000,
-        'currency'                 => 'USD',
-    ]);
-
-    UserCalculationCountry::factory()->create([
-        'user_calculation_id' => $calculation->id,
-        'country_id'          => $this->country->id,
-        'days_spent'          => 365,
-        'is_tax_resident'     => true,
-    ]);
-
-    $result = $this->service->calculateTaxes($calculation);
+    $result = $this->service->calculateTaxesFromSession(
+        makeStep1($this->country),
+        [makePeriod($this->country, 365)]
+    );
 
     expect($result)->toHaveKeys([
-        'annual_income',
-        'currency',
-        'total_tax',
-        'net_income',
-        'effective_tax_rate',
-        'breakdown_by_country',
+        'annual_income', 'currency', 'total_tax', 'net_income',
+        'effective_tax_rate', 'breakdown_by_country',
     ]);
 });
 
 it('calculates correct totals for a flat tax country', function () {
-    $calculation = UserCalculation::factory()->step2Completed()->create([
-        'country_id'               => $this->country->id,
-        'citizenship_country_code' => $this->country->iso_code,
-        'gross_income'             => 100000,
-        'currency'                 => 'USD',
-    ]);
-
-    UserCalculationCountry::factory()->create([
-        'user_calculation_id' => $calculation->id,
-        'country_id'          => $this->country->id,
-        'days_spent'          => 365,
-        'is_tax_resident'     => true,
-    ]);
-
-    $result = $this->service->calculateTaxes($calculation);
+    $result = $this->service->calculateTaxesFromSession(
+        makeStep1($this->country),
+        [makePeriod($this->country, 365)]
+    );
 
     // 15% flat tax on full year = 15000
     expect(round($result['total_tax'], 2))->toBe(15000.0);
@@ -74,26 +70,13 @@ it('calculates correct totals for a flat tax country', function () {
 it('only includes tax-resident countries in breakdown', function () {
     $nonResidentCountry = Country::factory()->flatTax(25)->create();
 
-    $calculation = UserCalculation::factory()->step2Completed()->create([
-        'country_id'               => $this->country->id,
-        'citizenship_country_code' => $this->country->iso_code,
-        'gross_income'             => 100000,
-        'currency'                 => 'USD',
-    ]);
-
-    UserCalculationCountry::factory()->create([
-        'user_calculation_id' => $calculation->id,
-        'country_id'          => $this->country->id,
-        'days_spent'          => 265,
-        'is_tax_resident'     => true,
-    ]);
-
-    UserCalculationCountry::factory()->nonResident(100)->create([
-        'user_calculation_id' => $calculation->id,
-        'country_id'          => $nonResidentCountry->id,
-    ]);
-
-    $result = $this->service->calculateTaxes($calculation);
+    $result = $this->service->calculateTaxesFromSession(
+        makeStep1($this->country),
+        [
+            makePeriod($this->country, 265),         // above 183 → resident
+            makePeriod($nonResidentCountry, 100),    // below 183 → non-resident
+        ]
+    );
 
     // Only resident country shows in breakdown
     expect($result['breakdown_by_country'])->toHaveCount(1);
@@ -101,21 +84,10 @@ it('only includes tax-resident countries in breakdown', function () {
 });
 
 it('returns recommendations array', function () {
-    $calculation = UserCalculation::factory()->step2Completed()->create([
-        'country_id'               => $this->country->id,
-        'citizenship_country_code' => $this->country->iso_code,
-        'gross_income'             => 100000,
-        'currency'                 => 'USD',
-    ]);
-
-    UserCalculationCountry::factory()->create([
-        'user_calculation_id' => $calculation->id,
-        'country_id'          => $this->country->id,
-        'days_spent'          => 365,
-        'is_tax_resident'     => true,
-    ]);
-
-    $result = $this->service->calculateTaxes($calculation);
+    $result = $this->service->calculateTaxesFromSession(
+        makeStep1($this->country),
+        [makePeriod($this->country, 365)]
+    );
 
     expect($result)->toHaveKey('recommendations');
     expect($result['recommendations'])->toBeArray();

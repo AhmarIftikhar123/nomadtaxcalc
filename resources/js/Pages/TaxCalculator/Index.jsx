@@ -1,8 +1,16 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { useForm, usePage, Link } from "@inertiajs/react";
-import { RotateCcw, Download, ArrowLeft } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useForm, usePage, Link, router } from "@inertiajs/react";
+import {
+    RotateCcw,
+    Download,
+    ArrowLeft,
+    Save,
+    CheckCircle,
+    XCircle,
+    TriangleAlert,
+} from "lucide-react";
 import TaxCalculatorLayout from "@/Layouts/TaxCalculatorLayout";
 import Step1Form from "@/Components/TaxCalculator/Step1Form";
 import Form1Summary from "@/Components/TaxCalculator/Form1Summary";
@@ -16,6 +24,7 @@ import DetailedTaxBreakdown from "@/Components/TaxCalculator/DetailedTaxBreakdow
 import TreatiesApplied from "@/Components/TaxCalculator/TreatiesApplied";
 import FEIEStatus from "@/Components/TaxCalculator/FEIEStatus";
 import ResidencyInsights from "@/Components/TaxCalculator/ResidencyInsights";
+import DisclaimerBanner from "@/Components/ui/DisclaimerBanner";
 
 export default function TaxCalculatorIndex({
     countries,
@@ -27,11 +36,29 @@ export default function TaxCalculatorIndex({
     savedResidencyPeriods,
     calculationResult: initialResult,
     currentStep: initialStep,
+    editingCalculationId,
 }) {
+    const { auth, flash } = usePage().props;
     // ─── Step State ──────────────────────────────────────────────
     const [step, setStep] = useState(initialStep || 1);
     const [result, setResult] = useState(initialResult || null);
     const [activeTab, setActiveTab] = useState("summary");
+    const [calculationError, setCalculationError] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Track the saved DB record ID so subsequent saves UPDATE instead of INSERT.
+    // Starts as editingCalculationId (set when user loads ?calculation_id=X),
+    // then updates from flash.saved_calculation_id after every successful save.
+    const [savedCalculationId, setSavedCalculationId] = useState(
+        editingCalculationId ?? null,
+    );
+
+    // Pick up the ID returned by the backend after each save
+    useEffect(() => {
+        if (flash?.saved_calculation_id) {
+            setSavedCalculationId(flash.saved_calculation_id);
+        }
+    }, [flash?.saved_calculation_id]);
 
     const tabs = [
         { id: "summary", label: "Summary" },
@@ -114,6 +141,7 @@ export default function TaxCalculatorIndex({
 
     // ─── Step 2 Submit ───────────────────────────────────────────
     const handleStep2Submit = () => {
+        setCalculationError(null);
         post(route("tax-calculator.step-2.store"), {
             preserveState: true,
             preserveScroll: true,
@@ -124,6 +152,12 @@ export default function TaxCalculatorIndex({
                     page.props.flash?.calculationResult;
                 setResult(result);
                 setStep(3);
+            },
+            onError: (err) => {
+                if (err.calculation) {
+                    setCalculationError(err.calculation);
+                    setStep(3); // Go to step 3 to show the error card
+                }
             },
         });
     };
@@ -137,6 +171,20 @@ export default function TaxCalculatorIndex({
     const handleRecalculate = () => {
         setStep(1);
         window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    // ─── Save / Update Calculation (auth users only) ──────────────────────────
+    const handleSave = () => {
+        setIsSaving(true);
+        router.post(
+            route("tax-calculator.save"),
+            { calculation_id: savedCalculationId ?? null },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onFinish: () => setIsSaving(false),
+            },
+        );
     };
 
     // ─── Render ──────────────────────────────────────────────────
@@ -234,118 +282,193 @@ export default function TaxCalculatorIndex({
                                 states={states}
                                 taxTypes={taxTypes}
                                 taxYear={data.tax_year}
+                                step1Currency={data.currency || "USD"}
                             />
                         </div>
                     </>
                 )}
 
                 {/* ═══════════════ STEP 3 ═══════════════ */}
-                {step === 3 && result && (
+                {step === 3 && (
                     <>
-                        {/* Tabs Navigation */}
-                        <div className="flex overflow-x-auto overflow-y-hidden gap-2 mb-8 pb-2 border-b-2 border-border-gray no-scrollbar">
-                            {tabs.map((tab) => (
+                        <DisclaimerBanner />
+
+                        {/* Flash Messages */}
+                        {flash?.success && (
+                            <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-6 py-4 mb-6 text-green-800">
+                                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                <span className="font-medium">
+                                    {flash.success}
+                                </span>
+                            </div>
+                        )}
+                        {flash?.error && (
+                            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-6 py-4 mb-6 text-red-800">
+                                <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                                <span className="font-medium">
+                                    {flash.error}
+                                </span>
+                            </div>
+                        )}
+
+                        {calculationError && (
+                            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-8 md:p-12 shadow-sm text-center max-w-3xl mx-auto mt-12">
+                                <TriangleAlert className="w-16 h-16 text-red-500 mx-auto mb-6" />
+                                <h2 className="text-3xl font-bold text-red-900 mb-4">
+                                    Calculation Failed
+                                </h2>
+                                <p className="text-lg text-red-700 mb-8 max-w-xl mx-auto">
+                                    {calculationError}
+                                </p>
                                 <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`whitespace-nowrap px-6 py-3 font-bold rounded-t-lg transition-colors border-2 border-b-0 -mb-[2px] ${
-                                        activeTab === tab.id
-                                            ? "bg-primary text-light border-primary"
-                                            : "bg-light text-gray hover:bg-gray/10 border-transparent"
-                                    }`}
+                                    onClick={() => {
+                                        setCalculationError(null);
+                                        setStep(2);
+                                        window.scrollTo({
+                                            top: 0,
+                                            behavior: "smooth",
+                                        });
+                                    }}
+                                    className="px-8 py-4 bg-primary hover:bg-dark text-light font-bold rounded-lg transition-all"
                                 >
-                                    {tab.label}
+                                    Try Again
                                 </button>
-                            ))}
-                        </div>
-
-                        {/* Tab Content: Summary */}
-                        {activeTab === "summary" && (
-                            <div className="space-y-6">
-                                <ResultMetricsCards result={result} />
-                                <TaxCalculationFlow result={result} />
                             </div>
                         )}
 
-                        {/* Tab Content: Residency */}
-                        {activeTab === "residency" && (
-                            <div className="space-y-6">
-                                <ResidencyInsights
-                                    residencyData={result.residency_data || []}
-                                />
-                                <ResidencyRiskAlert
-                                    residencyData={result.residency_data || []}
-                                />
-                            </div>
-                        )}
+                        {!calculationError && result && (
+                            <>
+                                {/* Tabs Navigation */}
+                                <div className="flex overflow-x-auto overflow-y-hidden gap-2 mb-8 pb-2 border-b-2 border-border-gray no-scrollbar">
+                                    {tabs.map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`whitespace-nowrap px-6 py-3 font-bold rounded-t-lg transition-colors border-2 border-b-0 -mb-[2px] ${
+                                                activeTab === tab.id
+                                                    ? "bg-primary text-light border-primary"
+                                                    : "bg-light text-gray hover:bg-gray/10 border-transparent"
+                                            }`}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
 
-                        {/* Tab Content: Treaties & FEIE */}
-                        {activeTab === "treaties" && (
-                            <div className="space-y-6">
-                                <TreatiesApplied
-                                    treatiesApplied={result.treaties_applied}
-                                    currency={result.currency}
-                                />
-                                <FEIEStatus
-                                    feieResult={result.feie_result}
-                                    citizenshipCountryCode={
-                                        citizenshipSummary.citizenship_country_code
-                                    }
-                                    currency={result.currency}
-                                    taxYear={result.tax_year}
-                                />
-                            </div>
-                        )}
+                                {/* Tab Content: Summary */}
+                                {activeTab === "summary" && (
+                                    <div className="space-y-6">
+                                        <ResultMetricsCards result={result} />
+                                        <TaxCalculationFlow result={result} />
+                                    </div>
+                                )}
 
-                        {/* Tab Content: Breakdown */}
-                        {activeTab === "breakdown" && (
-                            <div className="space-y-6">
-                                <TaxLiabilityComparison
-                                    comparisonData={
-                                        result.comparison_data || []
-                                    }
-                                    currency={result.currency}
-                                />
-                                <DetailedTaxBreakdown
-                                    breakdownData={
-                                        result.breakdown_by_country || []
-                                    }
-                                    currency={result.currency}
-                                    taxYear={result.tax_year}
-                                />
-                            </div>
-                        )}
+                                {/* Tab Content: Residency */}
+                                {activeTab === "residency" && (
+                                    <div className="space-y-6">
+                                        <ResidencyInsights
+                                            residencyData={
+                                                result.residency_data || []
+                                            }
+                                        />
+                                        <ResidencyRiskAlert
+                                            residencyData={
+                                                result.residency_data || []
+                                            }
+                                        />
+                                    </div>
+                                )}
 
-                        {/* Tab Content: Recommendations */}
-                        {activeTab === "recommendations" && (
-                            <div className="space-y-6">
-                                <SmartRecommendations
-                                    recommendations={
-                                        result.recommendations || []
-                                    }
-                                    currency={result.currency}
-                                />
-                            </div>
-                        )}
+                                {/* Tab Content: Treaties & FEIE */}
+                                {activeTab === "treaties" && (
+                                    <div className="space-y-6">
+                                        <TreatiesApplied
+                                            treatiesApplied={
+                                                result.treaties_applied
+                                            }
+                                            currency={result.currency}
+                                        />
+                                        <FEIEStatus
+                                            feieResult={result.feie_result}
+                                            citizenshipCountryCode={
+                                                citizenshipSummary.citizenship_country_code
+                                            }
+                                            currency={result.currency}
+                                            taxYear={result.tax_year}
+                                        />
+                                    </div>
+                                )}
 
-                        {/* Action Buttons */}
-                        <div className="flex gap-4 justify-center flex-wrap mt-12 mb-12">
-                            <button
-                                type="button"
-                                onClick={handleRecalculate}
-                                className="px-8 py-4 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-light transition-all flex items-center gap-2"
-                            >
-                                <RotateCcw className="w-5 h-5" />
-                                Start Over
-                            </button>
-                            <button
-                                onClick={() => window.print()}
-                                className="px-8 py-4 bg-primary hover:bg-dark text-light font-bold rounded-lg transition-all flex items-center gap-2"
-                            >
-                                <Download className="w-5 h-5" />
-                                Print Results
-                            </button>
-                        </div>
+                                {/* Tab Content: Breakdown */}
+                                {activeTab === "breakdown" && (
+                                    <div className="space-y-6">
+                                        <TaxLiabilityComparison
+                                            comparisonData={
+                                                result.comparison_data || []
+                                            }
+                                            currency={result.currency}
+                                        />
+                                        <DetailedTaxBreakdown
+                                            breakdownData={
+                                                result.breakdown_by_country ||
+                                                []
+                                            }
+                                            currency={result.currency}
+                                            taxYear={result.tax_year}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Tab Content: Recommendations */}
+                                {activeTab === "recommendations" && (
+                                    <div className="space-y-6">
+                                        <SmartRecommendations
+                                            recommendations={
+                                                result.recommendations || []
+                                            }
+                                            currency={result.currency}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-4 justify-center flex-wrap mt-12 mb-12">
+                                    <button
+                                        type="button"
+                                        onClick={handleRecalculate}
+                                        className="px-8 py-4 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-light transition-all flex items-center gap-2"
+                                    >
+                                        <RotateCcw className="w-5 h-5" />
+                                        Start Over
+                                    </button>
+
+                                    {/* Save / Update — only for logged-in users */}
+                                    {auth?.user && (
+                                        <button
+                                            type="button"
+                                            onClick={handleSave}
+                                            disabled={isSaving}
+                                            className="px-8 py-4 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-light transition-all flex items-center gap-2 disabled:opacity-50"
+                                        >
+                                            <Save className="w-5 h-5" />
+                                            {isSaving
+                                                ? "Saving..."
+                                                : editingCalculationId
+                                                  ? "Update Calculation"
+                                                  : "Save Calculation"}
+                                        </button>
+                                    )}
+
+                                    <button
+                                        onClick={() => window.print()}
+                                        className="px-8 py-4 bg-primary hover:bg-dark text-light font-bold rounded-lg transition-all flex items-center gap-2"
+                                    >
+                                        <Download className="w-5 h-5" />
+                                        Print Results
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </>
                 )}
             </div>

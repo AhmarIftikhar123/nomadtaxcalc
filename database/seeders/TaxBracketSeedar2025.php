@@ -975,7 +975,7 @@ class TaxBracketSeedar2025 extends Seeder
                 [60000, null, 35.00],
             ],
 
-            // -- 98. Georgia (2025) --
+            // -- 98.  (2025) --
             // Source: Revenue Service Georgia
             'GE' => [
                 [0, null, 20.00],  // Flat tax

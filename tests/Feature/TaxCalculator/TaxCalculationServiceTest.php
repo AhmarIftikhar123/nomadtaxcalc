@@ -13,14 +13,16 @@ beforeEach(function () {
 // ─── Income Allocation ────────────────────────────────────────────────────────
 
 it('allocates income proportionally based on days spent', function () {
-    $result = $this->service->allocateIncome(100000, 200);
+    $country = Country::factory()->create(['tax_basis' => 'worldwide']);
+    $result = $this->service->allocateIncome($country, 100000, 200);
     $expected = round(100000 / 365 * 200, 2);
 
     expect(round($result, 2))->toBe($expected);
 });
 
 it('allocates full income for a full year (365 days)', function () {
-    $result = $this->service->allocateIncome(100000, 365);
+    $country = Country::factory()->create(['tax_basis' => 'worldwide']);
+    $result = $this->service->allocateIncome($country, 100000, 365);
 
     expect(round($result, 2))->toBe(100000.0);
 });

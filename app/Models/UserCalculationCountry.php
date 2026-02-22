@@ -14,6 +14,7 @@ class UserCalculationCountry extends Model
         'country_id',
         'state_id',
         'days_spent',
+        'local_income',
         'is_tax_resident',
         'allocated_income',
         'taxable_income',
@@ -25,30 +26,22 @@ class UserCalculationCountry extends Model
 
     protected $casts = [
         'is_tax_resident'       => 'boolean',
+        'local_income'          => 'float',
         'tax_by_type'           => 'array',
         'selected_tax_type_ids' => 'array',
         'tax_type_overrides'    => 'array',
     ];
 
-    /**
-     * Get the calculation this belongs to
-     */
     public function userCalculation()
     {
         return $this->belongsTo(UserCalculation::class);
     }
 
-    /**
-     * Get the country
-     */
     public function country()
     {
         return $this->belongsTo(Country::class);
     }
 
-    /**
-     * Get the state
-     */
     public function state()
     {
         return $this->belongsTo(State::class);

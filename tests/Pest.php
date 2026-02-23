@@ -35,13 +35,46 @@ expect()->extend('toBeOne', function () {
 | Functions
 |--------------------------------------------------------------------------
 |
-| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
-| project that you don't want to repeat in every file. Here you can also expose helpers as
-| global functions to help you to reduce the number of lines of code in your test files.
+| Shared helpers available globally to all Feature tests.
+| Add frequently-used factory shortcuts and mock helpers here to keep
+| individual test files DRY.
 |
 */
 
-function something()
+/**
+ * Create a fully verified user (default factory state).
+ */
+function verifiedUser(array $attrs = []): \App\Models\User
 {
-    // ..
+    return \App\Models\User::factory()->create($attrs);
 }
+
+/**
+ * Create an unverified user (email_verified_at = null).
+ */
+function unverifiedUser(array $attrs = []): \App\Models\User
+{
+    return \App\Models\User::factory()->unverified()->create($attrs);
+}
+
+/**
+ * Return a fake Socialite Google user object for mocking.
+ */
+function fakeGoogleUser(
+    string $email = 'google@example.com',
+    string $name  = 'Google User',
+    string $id    = '123456789'
+): object {
+    return new class($email, $name, $id) {
+        public function __construct(
+            private readonly string $email,
+            private readonly string $name,
+            private readonly string $id,
+        ) {}
+
+        public function getEmail(): string { return $this->email; }
+        public function getName(): string  { return $this->name; }
+        public function getId(): string    { return $this->id; }
+    };
+}
+

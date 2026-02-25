@@ -7,6 +7,7 @@ import THFlag from "@/assets/images/flags/th.svg";
 import GEFlag from "@/assets/images/flags/ge.svg";
 import EEFlag from "@/assets/images/flags/ee.svg";
 import MTFlag from "@/assets/images/flags/mt.svg";
+import { Link } from "@inertiajs/react";
 
 export default function DestinationsSection({ destinations }) {
     const flagMap = {
@@ -36,9 +37,9 @@ export default function DestinationsSection({ destinations }) {
                             optimization and quality of life.
                         </p>
                     </div>
-                    <button className="px-4 py-2 text-sm font-semibold border border-primary dark:border-white rounded-lg hover:bg-primary hover:text-white dark:hover:bg-white dark:hover:text-primary transition-colors">
+                    <Link href={route("tax-calculator.index")} className="px-4 py-2 text-sm font-semibold border border-primary dark:border-white rounded-lg hover:bg-primary hover:text-white dark:hover:bg-white dark:hover:text-primary transition-colors">
                         View All 150+
-                    </button>
+                    </Link>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

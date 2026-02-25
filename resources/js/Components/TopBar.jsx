@@ -83,7 +83,7 @@ export default function TopBar({
                                 >
                                     <Bell className="w-5 h-5 text-primary" />
                                     {/* Notification Badge */}
-                                    <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
+                                    {/* <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span> */}
                                 </button>
 
                                 {/* Notification Dropdown */}

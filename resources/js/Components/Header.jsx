@@ -50,9 +50,9 @@ export default function Header() {
 
                 {/* CTA Buttons */}
                 <div className="flex items-center gap-4">
-                    <button className="flex min-w-[120px] cursor-pointer items-center justify-center rounded-xl h-10 px-5 bg-primary text-white text-sm font-bold tracking-tight hover:bg-primary/90 transition-all">
+                    <Link href={route('tax-calculator.index')} className="flex min-w-[120px] cursor-pointer items-center justify-center rounded-xl h-10 px-5 bg-primary text-white text-sm font-bold tracking-tight hover:bg-primary/90 transition-all">
                         Try Calculator
-                    </button>
+                    </Link>
                 </div>
 
                 {/* Mobile Menu Toggle */}

@@ -1,14 +1,27 @@
-import React, { useState } from "react";
+import React from "react";
 import Logo from "@/assets/images/logos/logo-desktop.png";
+import { useForm } from "@inertiajs/react";
+
 export default function Footer() {
-    const [email, setEmail] = useState("");
     const AppName = import.meta.env.VITE_APP_NAME;
+    const {
+        data,
+        setData,
+        post,
+        processing,
+        errors,
+        reset,
+        recentlySuccessful,
+    } = useForm({
+        email: "",
+    });
 
     const handleSubscribe = (e) => {
         e.preventDefault();
-        // Newsletter subscription logic would go here
-        console.log("Subscribe email:", email);
-        setEmail("");
+        post(route("newsletter.subscribe"), {
+            preserveScroll: true,
+            onSuccess: () => reset("email"),
+        });
     };
 
     return (
@@ -27,21 +40,37 @@ export default function Footer() {
                     </div>
                     <form
                         onSubmit={handleSubscribe}
-                        className="flex flex-col md:flex-row w-full lg:w-auto gap-3"
+                        className="flex flex-col md:flex-row w-full lg:w-auto gap-3 items-start md:items-center relative"
                     >
-                        <input
-                            className="flex-1 lg:w-64 bg-white/10 border-white/20 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-white/30 transition-all outline-none border-none"
-                            placeholder="Enter your email"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
+                        <div className="flex flex-col w-full lg:w-auto">
+                            <input
+                                className="flex-1 lg:w-64 bg-white/10 border-white/20 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-white/30 transition-all outline-none border-none disabled:opacity-50"
+                                placeholder="Enter your email"
+                                type="email"
+                                value={data.email}
+                                onChange={(e) =>
+                                    setData("email", e.target.value)
+                                }
+                                required
+                                disabled={processing}
+                            />
+                            {errors.email && (
+                                <span className="text-red-400 text-xs mt-1 absolute md:top-12 md:left-0">
+                                    {errors.email}
+                                </span>
+                            )}
+                            {recentlySuccessful && (
+                                <span className="text-green-400 text-xs mt-1 absolute md:top-12 md:left-0">
+                                    Successfully subscribed!
+                                </span>
+                            )}
+                        </div>
                         <button
                             type="submit"
-                            className="bg-white text-primary px-6 py-2 rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors"
+                            disabled={processing}
+                            className="bg-white text-primary px-6 py-2 rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors disabled:opacity-50 h-[44px] flex items-center justify-center whitespace-nowrap"
                         >
-                            Join Newsletter
+                            {processing ? "Joining..." : "Join Newsletter"}
                         </button>
                     </form>
                 </div>

@@ -4,34 +4,29 @@ namespace App\Http\Controllers\TaxCalculator;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserCalculation;
+use App\Services\MyCalculations\SavedCalculationService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class SavedCalculationController extends Controller
 {
+    public function __construct(
+        private readonly SavedCalculationService $service
+    ) {}
+
     /**
-     * List all saved calculations for the authenticated user.
+     * List saved calculations, with optional DB-level search + pagination.
+     * Query params: ?search=&page=
      */
-    public function index()
+    public function index(Request $request)
     {
-        $calculations = UserCalculation::where('user_id', auth()->id())
-            ->with('country:id,name,iso_code')
-            ->latest()
-            ->get()
-            ->map(fn ($c) => [
-                'id'                => $c->id,
-                'tax_year'          => $c->tax_year,
-                'currency'          => $c->currency,
-                'gross_income'      => $c->gross_income,
-                'total_tax'         => $c->total_tax,
-                'net_income'        => $c->net_income,
-                'effective_tax_rate'=> $c->effective_tax_rate,
-                'citizenship_country_name' => $c->country?->name ?? 'Unknown',
-                'citizenship_country_code' => $c->citizenship_country_code,
-                'saved_at'          => $c->created_at?->toDateString(),
-            ]);
+        $search = $request->string('search')->trim()->value();
+
+        $calculations = $this->service->forUser(auth()->id(), $search ?: null);
 
         return Inertia::render('MyCalculations/Index', [
             'calculations' => $calculations,
+            'filters'      => ['search' => $search],
         ]);
     }
 
@@ -40,12 +35,7 @@ class SavedCalculationController extends Controller
      */
     public function destroy(UserCalculation $calculation)
     {
-        // Ensure the calculation belongs to the authenticated user
-        if ($calculation->user_id !== auth()->id()) {
-            abort(403);
-        }
-
-        $calculation->delete();
+        $this->service->delete($calculation, auth()->id());
 
         return back()->with('success', 'Calculation deleted.');
     }

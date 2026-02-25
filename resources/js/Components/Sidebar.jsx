@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 import { Link, usePage } from "@inertiajs/react";
+import Tooltip from "@/Components/Ui/Tooltip";
 
 export default function Sidebar({ user, isCollapsed, isMobileOpen }) {
     const isAuthenticated = !!user;
@@ -28,15 +29,22 @@ export default function Sidebar({ user, isCollapsed, isMobileOpen }) {
             icon: FileText,
             label: "Nomad Tax Calculator",
             href: route("tax-calculator.index"),
-            authOnly: false, // visible to everyone
+            authOnly: false,
             activeRoutes: ["tax-calculator.index"],
         },
         {
-            icon: Globe,
-            label: "Countries",
-            href: "",
+            icon: FileText,
+            label: "My Calculations",
+            href: route("my-calculations.index"),
             authOnly: true,
+            activeRoutes: ["my-calculations.index"],
         },
+        // {
+        //     icon: Globe,
+        //     label: "Countries",
+        //     href: "",
+        //     authOnly: true,
+        // },
         {
             icon: Settings,
             label: "Settings",
@@ -121,26 +129,32 @@ export default function Sidebar({ user, isCollapsed, isMobileOpen }) {
             </div>
 
             {/* Main Menu */}
-            <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <nav className="flex-1 py-6 px-3 space-y-1">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActive(item);
                     return (
-                        <Link
+                        <Tooltip
                             key={item.label}
-                            href={item.href}
-                            className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors duration-200 ${isCollapsed ? "justify-center" : ""} ${
-                                active
-                                    ? "bg-primary text-light active"
-                                    : "text-primary hover:bg-border-gray"
-                            }`}
-                            title={isCollapsed ? item.label : ""}
+                            text={isCollapsed ? item.label : ""}
+                            position="right"
+                            delay={100}
+                            className="w-full"
                         >
-                            <Icon
-                                className={`w-5 h-5 shrink-0 ${active ? "text-light" : "text-primary"}`}
-                            />
-                            {!isCollapsed && <span>{item.label}</span>}
-                        </Link>
+                            <Link
+                                href={item.href}
+                                className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors duration-200 w-full ${isCollapsed ? "justify-center" : ""} ${
+                                    active
+                                        ? "bg-primary text-light active"
+                                        : "text-primary hover:bg-border-gray"
+                                }`}
+                            >
+                                <Icon
+                                    className={`w-5 h-5 shrink-0 ${active ? "text-light" : "text-primary"}`}
+                                />
+                                {!isCollapsed && <span>{item.label}</span>}
+                            </Link>
+                        </Tooltip>
                     );
                 })}
             </nav>
@@ -154,23 +168,29 @@ export default function Sidebar({ user, isCollapsed, isMobileOpen }) {
                         const active = isActive(item);
 
                         return (
-                            <Link
+                            <Tooltip
                                 key={item.label}
-                                href={item.href}
-                                method={item.method}
-                                as={isLogout ? "button" : "a"}
-                                className={`flex w-full items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors duration-200 ${isCollapsed ? "justify-center" : ""} ${
-                                    active
-                                        ? "bg-primary text-light active"
-                                        : "text-primary hover:bg-border-gray"
-                                }`}
-                                title={isCollapsed ? item.label : ""}
+                                text={isCollapsed ? item.label : ""}
+                                position="right"
+                                delay={100}
+                                className="w-full"
                             >
-                                <Icon
-                                    className={`w-5 h-5 shrink-0 ${active ? "text-light" : "text-primary"}`}
-                                />
-                                {!isCollapsed && <span>{item.label}</span>}
-                            </Link>
+                                <Link
+                                    href={item.href}
+                                    method={item.method}
+                                    as={isLogout ? "button" : "a"}
+                                    className={`flex w-full items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors duration-200 ${isCollapsed ? "justify-center" : ""} ${
+                                        active
+                                            ? "bg-primary text-light active"
+                                            : "text-primary hover:bg-border-gray"
+                                    }`}
+                                >
+                                    <Icon
+                                        className={`w-5 h-5 shrink-0 ${active ? "text-light" : "text-primary"}`}
+                                    />
+                                    {!isCollapsed && <span>{item.label}</span>}
+                                </Link>
+                            </Tooltip>
                         );
                     })}
                 </div>

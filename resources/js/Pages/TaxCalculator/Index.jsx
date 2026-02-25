@@ -7,10 +7,10 @@ import {
     Download,
     ArrowLeft,
     Save,
-    CheckCircle,
-    XCircle,
+    Check,
     TriangleAlert,
 } from "lucide-react";
+import FlashMessage from "@/Components/ui/FlashMessage";
 import TaxCalculatorLayout from "@/Layouts/TaxCalculatorLayout";
 import Step1Form from "@/Components/TaxCalculator/Step1Form";
 import Form1Summary from "@/Components/TaxCalculator/Form1Summary";
@@ -59,6 +59,9 @@ export default function TaxCalculatorIndex({
             setSavedCalculationId(flash.saved_calculation_id);
         }
     }, [flash?.saved_calculation_id]);
+
+    // Track whether the current result has been saved
+    const [hasSaved, setHasSaved] = useState(!!editingCalculationId);
 
     const tabs = [
         { id: "summary", label: "Summary" },
@@ -182,7 +185,10 @@ export default function TaxCalculatorIndex({
             {
                 preserveState: true,
                 preserveScroll: true,
-                onFinish: () => setIsSaving(false),
+                onFinish: () => {
+                    setIsSaving(false);
+                    setHasSaved(true);
+                },
             },
         );
     };
@@ -294,22 +300,8 @@ export default function TaxCalculatorIndex({
                         <DisclaimerBanner />
 
                         {/* Flash Messages */}
-                        {flash?.success && (
-                            <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-6 py-4 mb-6 text-green-800">
-                                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                                <span className="font-medium">
-                                    {flash.success}
-                                </span>
-                            </div>
-                        )}
-                        {flash?.error && (
-                            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-6 py-4 mb-6 text-red-800">
-                                <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                                <span className="font-medium">
-                                    {flash.error}
-                                </span>
-                            </div>
-                        )}
+                        <FlashMessage type="success" message={flash?.success} />
+                        <FlashMessage type="error" message={flash?.error} />
 
                         {calculationError && (
                             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-8 md:p-12 shadow-sm text-center max-w-3xl mx-auto mt-12">
@@ -447,15 +439,31 @@ export default function TaxCalculatorIndex({
                                         <button
                                             type="button"
                                             onClick={handleSave}
-                                            disabled={isSaving}
-                                            className="px-8 py-4 border-2 border-primary text-primary font-bold rounded-lg hover:bg-primary hover:text-light transition-all flex items-center gap-2 disabled:opacity-50"
+                                            disabled={isSaving || hasSaved}
+                                            className={`px-8 py-4 border-2 font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                hasSaved
+                                                    ? "border-green-500 text-green-600"
+                                                    : "border-primary text-primary hover:bg-primary hover:text-light"
+                                            }`}
                                         >
-                                            <Save className="w-5 h-5" />
-                                            {isSaving
-                                                ? "Saving..."
-                                                : editingCalculationId
-                                                  ? "Update Calculation"
-                                                  : "Save Calculation"}
+                                            {hasSaved ? (
+                                                <>
+                                                    <Check className="w-5 h-5" />
+                                                    Saved ✓
+                                                </>
+                                            ) : isSaving ? (
+                                                <>
+                                                    <Save className="w-5 h-5 animate-pulse" />
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save className="w-5 h-5" />
+                                                    {editingCalculationId
+                                                        ? "Update Calculation"
+                                                        : "Save Calculation"}
+                                                </>
+                                            )}
                                         </button>
                                     )}
 

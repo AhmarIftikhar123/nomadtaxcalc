@@ -7,6 +7,7 @@ import GuestLayout from "@/Layouts/GuestLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import googleLogo from "@/assets/images/logos/google.svg";
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -120,6 +121,21 @@ export default function Login({ status, canResetPassword }) {
                     <PrimaryButton disabled={processing}>Log in</PrimaryButton>
                 </div>
             </form>
+
+            {/* ── Or continue with ── */}
+            <div className="mt-6 flex items-center gap-3">
+                <hr className="flex-1 border-gray-200" />
+                <span className="text-xs text-gray-400">or continue with</span>
+                <hr className="flex-1 border-gray-200" />
+            </div>
+
+            <a
+                href={route("auth.google.redirect")}
+                className="mt-4 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow focus:outline-none focus:ring-2 focus:ring-gray-300"
+            >
+                <img src={googleLogo} alt="Google" className="h-5 w-5" />
+                Continue with Google
+            </a>
         </GuestLayout>
     );
 }

@@ -35,6 +35,9 @@ class UserCalculation extends Model
         'feie_result',
         'device_type',
         'referrer',
+        'share_token',
+        'share_expires_at',
+        'email_sent_at',
     ];
 
     protected $casts = [
@@ -47,6 +50,8 @@ class UserCalculation extends Model
         'completed_calculation' => 'boolean',
         'started_at'            => 'datetime',
         'completed_at'          => 'datetime',
+        'share_expires_at'      => 'datetime',
+        'email_sent_at'         => 'datetime',
         'tax_year'              => 'integer',
     ];
 
@@ -56,6 +61,16 @@ class UserCalculation extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * True when the share link exists and has not yet expired.
+     */
+    public function isShareActive(): bool
+    {
+        return $this->share_token !== null
+            && $this->share_expires_at !== null
+            && $this->share_expires_at->isFuture();
     }
 
     /**

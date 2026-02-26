@@ -5,6 +5,7 @@ namespace App\Http\Controllers\TaxCalculator;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TaxCalculator\StoreStep1Request;
 use App\Http\Requests\TaxCalculator\StoreStep2Request;
+use App\Mail\TaxResultsMail;
 use App\Models\Country;
 use App\Models\TaxBracket;
 use App\Models\TaxType;
@@ -13,6 +14,8 @@ use App\Services\CurrencyService;
 use App\Services\TaxCalculator\TaxCalculatorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class TaxCalculatorController extends Controller
@@ -163,6 +166,126 @@ class TaxCalculatorController extends Controller
                 ? 'Calculation updated successfully.'
                 : 'Calculation saved to your account.')
             ->with('saved_calculation_id', $saved->id);
+    }
+
+    /**
+     * Email the current calculation results to the authenticated user.
+     * Auto-generates (or refreshes) the share token so the email CTA
+     * always contains a valid link.
+     */
+    public function sendEmail(Request $request)
+    {
+        $calculationId = $request->input('calculation_id');
+
+        $calculation = UserCalculation::where('id', $calculationId)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        // Ensure the calculation has an active share token for the email CTA
+        if (!$calculation->isShareActive()) {
+            $calculation->update([
+                'share_token'      => Str::random(64),
+                'share_expires_at' => now()->addMonth(),
+            ]);
+        }
+
+        $shareUrl = route('tax-calculator.shared', $calculation->share_token);
+
+        Mail::to(auth()->user()->email)
+            ->send(new TaxResultsMail($calculation, $shareUrl));
+
+        $calculation->update(['email_sent_at' => now()]);
+
+        return back()->with('success', 'Results sent to ' . auth()->user()->email);
+    }
+
+    /**
+     * Generate (or refresh) a 30-day shareable read-only link.
+     */
+    public function generateLink(Request $request)
+    {
+        $calculationId = $request->input('calculation_id');
+
+        $calculation = UserCalculation::where('id', $calculationId)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        // Always refresh token + expiry so the link is always 30 days from now
+        $calculation->update([
+            'share_token'      => Str::random(64),
+            'share_expires_at' => now()->addMonth(),
+        ]);
+
+        $shareUrl = route('tax-calculator.shared', $calculation->share_token);
+
+        return back()->with('share_url', $shareUrl);
+    }
+
+    /**
+     * Public read-only view of a shared calculation.
+     * No auth required — the token acts as the access credential.
+     */
+    public function viewShared(string $token)
+    {
+        $calculation = UserCalculation::where('share_token', $token)
+            ->with('countriesVisited.country')
+            ->first();
+
+        // Token doesn't exist
+        if (!$calculation) {
+            return Inertia::render('SharedCalculation/Show', [
+                'expired' => true,
+                'result'  => null,
+            ]);
+        }
+
+        // Token is expired
+        if (!$calculation->isShareActive()) {
+            return Inertia::render('SharedCalculation/Show', [
+                'expired'  => true,
+                'expiredAt' => $calculation->share_expires_at?->format('F j, Y'),
+                'result'   => null,
+            ]);
+        }
+
+        // Build the result array from stored JSON columns
+        $result = [
+            'annual_income'       => $calculation->taxable_income,
+            'currency'            => $calculation->currency,
+            'tax_year'            => $calculation->tax_year,
+            'total_tax'           => $calculation->total_tax,
+            'net_income'          => $calculation->net_income,
+            'effective_tax_rate'  => $calculation->effective_tax_rate,
+            'breakdown_by_country'=> $calculation->tax_breakdown ?? [],
+            'residency_warnings'  => $calculation->residency_warnings ?? [],
+            'residency_data'      => [],
+            'comparison_data'     => $this->buildComparisonFromBreakdown($calculation->tax_breakdown ?? []),
+            'treaties_applied'    => $calculation->treaty_applied ?? [],
+            'feie_result'         => $calculation->feie_result,
+            'recommendations'     => [],
+        ];
+
+        return Inertia::render('SharedCalculation/Show', [
+            'expired'            => false,
+            'result'             => $result,
+            'citizenshipCode'    => $calculation->citizenship_country_code,
+            'shareExpiresAt'     => $calculation->share_expires_at?->format('F j, Y'),
+        ]);
+    }
+
+    // ─── Private helpers ──────────────────────────────────────────────────────
+
+    private function buildComparisonFromBreakdown(array $breakdown): array
+    {
+        $comparison = array_map(fn ($bd) => [
+            'country'    => $bd['country_name'] ?? '',
+            'liability'  => $bd['tax_due'] ?? 0,
+            'percentage' => $bd['effective_rate'] ?? 0,
+        ], $breakdown);
+
+        usort($comparison, fn ($a, $b) => $b['liability'] <=> $a['liability']);
+
+        return $comparison;
     }
 }
 

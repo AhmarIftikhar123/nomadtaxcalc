@@ -22,6 +22,8 @@ Route::middleware('throttle:20,1')->group(function () {
         Route::get('/', [TaxCalculatorController::class, 'index'])->name('tax-calculator.index');
         Route::post('/step-1', [TaxCalculatorController::class, 'storeStep1'])->name('tax-calculator.step-1');
         Route::post('/step-2', [TaxCalculatorController::class, 'storeStep2'])->name('tax-calculator.step-2.store');
+        // Public shared results page (token acts as access credential)
+        Route::get('/shared/{token}', [TaxCalculatorController::class, 'viewShared'])->name('tax-calculator.shared');
     });
 
     // Currency endpoint — public, lazy-loaded by frontend when territorial country added
@@ -33,9 +35,13 @@ Route::middleware('throttle:20,1')->group(function () {
 
 
     // Tax Calculator — Auth-Only Routes
-    Route::middleware('auth,verified')->group(function () {
+    Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/tax-calculator/save', [TaxCalculatorController::class, 'saveCalculation'])
             ->name('tax-calculator.save');
+        Route::post('/tax-calculator/email-results', [TaxCalculatorController::class, 'sendEmail'])
+            ->name('tax-calculator.email-results');
+        Route::post('/tax-calculator/generate-link', [TaxCalculatorController::class, 'generateLink'])
+            ->name('tax-calculator.generate-link');
 
         // My Calculations
         Route::resource('my-calculations', SavedCalculationController::class)
@@ -52,4 +58,6 @@ Route::middleware('throttle:20,1')->group(function () {
             return Inertia::render('Dashboard');
         });
     });
+    // temporary Route
+    Route::get('dashboard', fn() => Inertia::render('Dashboard'))->name('dashboard');
 });

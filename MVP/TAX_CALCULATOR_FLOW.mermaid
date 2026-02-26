@@ -1,0 +1,101 @@
+flowchart TD
+    Browser(["🌐 Browser"])
+
+    %% ── PAGE LOAD ──────────────────────────────────────────────────────────────
+    Browser -->|"GET /tax-calculator"| RouteIndex["Route: tax-calculator.index\nweb.php L22"]
+    RouteIndex --> CtrlIndex["TaxCalculatorController\n::index()"]
+
+    CtrlIndex -->|"?calculation_id present\n+ auth user"| EditMode["Edit Mode\nUserCalculation::where(id, user_id)\n→ rebuildPrefillFromCalculation()"]
+    CtrlIndex -->|"No query param"| SessionMode["Session Mode\nReads session(tax_calc_step1)\nsession(tax_calc_step2)\nsession(tax_calc_result)"]
+
+    EditMode --> RenderPage["Inertia::render\n'TaxCalculator/Index'\n— countries, states, currencies\n— savedStep1Data\n— savedResidencyPeriods\n— calculationResult\n— editingCalculationId"]
+    SessionMode --> RenderPage
+
+    RenderPage --> FEIndex["Pages/TaxCalculator/Index.jsx\nShows Step 1 form"]
+
+    %% ── STEP 1 ──────────────────────────────────────────────────────────────────
+    FEIndex -->|"User fills income, country,\ncurrency, year & submits"| RouteS1["Route: tax-calculator.step-1\nPOST /tax-calculator/step-1"]
+    RouteS1 --> ValidS1["StoreStep1Request\nvalidates fields"]
+    ValidS1 -->|"Validation fails"| BackErrors1["back()->withErrors()\nFrontend shows inline errors"]
+    ValidS1 -->|"Validation passes"| CtrlS1["TaxCalculatorController\n::storeStep1()"]
+    CtrlS1 --> BuildPayload["TaxCalculatorService\n::buildSessionStep1Payload()\nResolves country code & name"]
+    BuildPayload --> StoreS1["session('tax_calc_step1')\n= payload\nForgets tax_calc_step2\n& tax_calc_result"]
+    StoreS1 -->|"redirect back"| FEStep2["Index.jsx advances\nto Step 2 — Period Entry"]
+
+    %% ── STEP 2 ──────────────────────────────────────────────────────────────────
+    FEStep2 -->|"User adds residency periods\n(country, date range, days,\nlocal income, tax types)"| RouteS2["Route: tax-calculator.step-2.store\nPOST /tax-calculator/step-2"]
+    RouteS2 --> ValidS2["StoreStep2Request\nvalidates residency_periods[]"]
+    ValidS2 -->|"Validation fails"| BackErrors2["back()->withErrors()\nFrontend shows errors"]
+    ValidS2 -->|"Validation passes"| CtrlS2["TaxCalculatorController\n::storeStep2()"]
+    CtrlS2 -->|"session missing"| ErrRedirect["redirect to index\nwith 'Session expired' error"]
+    CtrlS2 -->|"session OK"| StoreS2["session('tax_calc_step2')\n= periods"]
+    StoreS2 --> CacheCheck{"Cache::remember\nmd5(step1+periods)\nTTL: 1 hour"}
+    CacheCheck -->|"Cache HIT"| CacheResult["Return cached result"]
+    CacheCheck -->|"Cache MISS"| Pipeline
+
+    %% ── CALCULATION PIPELINE ────────────────────────────────────────────────────
+    subgraph Pipeline["⚙️ TaxCalculatorService::calculateTaxesFromSession()"]
+        direction TB
+        P1["Sub-step 1 — Residency\nResidencyDeterminationService::determine()\n• Compare days vs tax_residency_days threshold\n• Subtract arrival/departure days per country\n• Tag is_tax_resident true/false\n• Generate near-threshold warnings"]
+        P2["Sub-step 2 — Tax Per Country\nTaxCalculationService::allocateIncome()\n+ calculateForCountry()\n• Territorial: use local_income (currency converted)\n• Worldwide: income × days/365\n• Apply progressive/flat/custom brackets\n• State-level tax if state_id present"]
+        P3["Sub-step 3 — Treaties\nTreatyResolutionService::applyTreaty()\n• Credit treaty: reduce home-country tax\n• Exemption treaty: eliminate double tax\n• FTC fallback: foreign tax credit if not home-resident"]
+        P4["Sub-step 4 — FEIE\nFeieCalculationService::calculate()\n• US citizens only\n• Bona fide residence / physical presence test\n• FEIE limit from settings table for tax_year\n• Reduces US taxable income if eligible"]
+        P5["Sub-step 5 — Aggregate\ntotal_tax = Σ tax_due\nnet_income = income − total_tax\neffective_rate = total_tax / income × 100"]
+        P6["Sub-step 6 — Recommendations\nRecommendationService::generate()\nResidencyDeterminationService::generateWarnings()"]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6
+    end
+
+    CacheResult --> StoreResult
+    Pipeline --> StoreResult["session('tax_calc_result')\n= result{}\nback()->with(calculationResult)"]
+
+    %% ── STEP 3 / RESULTS ────────────────────────────────────────────────────────
+    StoreResult --> FEStep3["Index.jsx — Step 3\nResults Page\nResultMetricsCards\nTaxCalculationFlow\nTaxLiabilityComparison\nDetailedTaxBreakdown\nTreatiesApplied\nFEIEStatus\nSmartRecommendations"]
+
+    %% ── AUTH ACTIONS FROM STEP 3 ────────────────────────────────────────────────
+    FEStep3 -->|"Click 'Save Calculation'\n[auth + verified]"| RouteSave["Route: tax-calculator.save\nPOST /tax-calculator/save"]
+    RouteSave --> CtrlSave["TaxCalculatorController\n::saveCalculation()"]
+    CtrlSave -->|"calculation_id = null"| DBCreate["UserCalculation::create()\n+ UserCalculationCountry rows"]
+    CtrlSave -->|"calculation_id present"| DBUpdate["UserCalculation::update()\nDelete + re-create\nUserCalculationCountry rows"]
+    DBCreate --> FlashSaveId["flash: saved_calculation_id\n→ HandleInertiaRequests\n→ flash.saved_calculation_id in React\n→ setSavedCalculationId(id)\n→ Email + Share buttons unlock"]
+    DBUpdate --> FlashSaveId
+
+    FEStep3 -->|"Click 'Email Results'\n[auth + verified\nrequires savedCalculationId]"| RouteEmail["Route: tax-calculator.email-results\nPOST /tax-calculator/email-results"]
+    RouteEmail --> CtrlEmail["TaxCalculatorController\n::sendEmail()"]
+    CtrlEmail -->|"No active share_token"| GenToken["Generate share_token\n+ share_expires_at = +30d\nSave to user_calculations"]
+    GenToken --> SendMail["Mail::to(user email)\n→ TaxResultsMail\n→ emails/tax-results.blade.php"]
+    CtrlEmail -->|"share_token active"| SendMail
+    SendMail --> UpdateEmailAt["user_calculations\n.email_sent_at = now()"]
+    UpdateEmailAt --> FlashSuccess["flash: success\n'Results sent to email'"]
+
+    FEStep3 -->|"Click 'Share Link'\n[auth + verified\nrequires savedCalculationId]"| RouteShare["Route: tax-calculator.generate-link\nPOST /tax-calculator/generate-link"]
+    RouteShare --> CtrlShare["TaxCalculatorController\n::generateLink()"]
+    CtrlShare --> RefreshToken["share_token = Str::random(64)\nshare_expires_at = +30 days\nSaved to user_calculations"]
+    RefreshToken --> FlashShareUrl["flash: share_url\n→ HandleInertiaRequests\n→ flash.share_url in React\n→ useEffect opens ShareLinkModal"]
+    FlashShareUrl --> Modal["ShareLinkModal.jsx\nDisplay URL + Copy button\nExpiry warning chip"]
+
+    %% ── PUBLIC SHARED PAGE ──────────────────────────────────────────────────────
+    SomeoneOpensLink(["👥 Anyone with share URL"])
+    SomeoneOpensLink -->|"GET /tax-calculator/shared/{token}"| RouteShared["Route: tax-calculator.shared\n(public — no auth)"]
+    RouteShared --> CtrlShared["TaxCalculatorController\n::viewShared(token)"]
+    CtrlShared -->|"Token not found"| ExpiredPage["SharedCalculation/Show.jsx\nexpired: true\n'Link Not Found' state"]
+    CtrlShared -->|"isShareActive() false"| ExpiredPage2["SharedCalculation/Show.jsx\nexpired: true, expiredAt: date\n'Link Expired' state"]
+    CtrlShared -->|"Valid token"| SharedPage["SharedCalculation/Show.jsx\nRead-only results\nAll result components\n+ expiry date chip\n+ 'Calculate Your Own' CTA"]
+
+    %% ── STYLING ─────────────────────────────────────────────────────────────────
+    classDef route fill:#1e3a5f,color:#fff,stroke:#1e3a5f
+    classDef controller fill:#22262a,color:#fff,stroke:#22262a
+    classDef service fill:#155724,color:#fff,stroke:#155724
+    classDef frontend fill:#4a235a,color:#fff,stroke:#4a235a
+    classDef session fill:#7b3f00,color:#fff,stroke:#7b3f00
+    classDef db fill:#0c3547,color:#fff,stroke:#0c3547
+    classDef flash fill:#856404,color:#fff,stroke:#856404
+    classDef error fill:#842029,color:#fff,stroke:#842029
+
+    class RouteIndex,RouteS1,RouteS2,RouteSave,RouteEmail,RouteShare,RouteShared route
+    class CtrlIndex,CtrlS1,CtrlS2,CtrlSave,CtrlEmail,CtrlShare,CtrlShared controller
+    class BuildPayload,P1,P2,P3,P4,P5,P6,Pipeline service
+    class FEIndex,FEStep2,FEStep3,RenderPage,Modal,SharedPage,ExpiredPage,ExpiredPage2 frontend
+    class StoreS1,StoreS2,StoreResult,SessionMode,EditMode,CacheCheck,CacheResult session
+    class DBCreate,DBUpdate,GenToken,RefreshToken,UpdateEmailAt db
+    class FlashSaveId,FlashShareUrl,FlashSuccess flash
+    class BackErrors1,BackErrors2,ErrRedirect,ValidS1,ValidS2 error

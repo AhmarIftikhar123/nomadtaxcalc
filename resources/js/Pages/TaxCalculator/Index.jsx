@@ -9,6 +9,8 @@ import {
     Save,
     Check,
     TriangleAlert,
+    Mail,
+    Link2,
 } from "lucide-react";
 import FlashMessage from "@/Components/ui/FlashMessage";
 import TaxCalculatorLayout from "@/Layouts/TaxCalculatorLayout";
@@ -25,6 +27,8 @@ import TreatiesApplied from "@/Components/TaxCalculator/TreatiesApplied";
 import FEIEStatus from "@/Components/TaxCalculator/FEIEStatus";
 import ResidencyInsights from "@/Components/TaxCalculator/ResidencyInsights";
 import DisclaimerBanner from "@/Components/ui/DisclaimerBanner";
+import Tooltip from "@/Components/Ui/Tooltip";
+import ShareLinkModal from "@/Components/Ui/ShareLinkModal";
 
 export default function TaxCalculatorIndex({
     countries,
@@ -45,6 +49,13 @@ export default function TaxCalculatorIndex({
     const [activeTab, setActiveTab] = useState("summary");
     const [calculationError, setCalculationError] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+    const [emailSent, setEmailSent] = useState(false);
+    const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+    const [linkCopied, setLinkCopied] = useState(false);
+    const [shareExpiry, setShareExpiry] = useState(null);
+    const [shareUrl, setShareUrl] = useState(null);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     // Track the saved DB record ID so subsequent saves UPDATE instead of INSERT.
     // Starts as editingCalculationId (set when user loads ?calculation_id=X),
@@ -59,6 +70,23 @@ export default function TaxCalculatorIndex({
             setSavedCalculationId(flash.saved_calculation_id);
         }
     }, [flash?.saved_calculation_id]);
+
+    // Pick up the share URL returned by the backend and open the modal
+    useEffect(() => {
+        if (flash?.share_url) {
+            const exp = new Date();
+            exp.setDate(exp.getDate() + 30);
+            setShareUrl(flash.share_url);
+            setShareExpiry(
+                exp.toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                }),
+            );
+            setShowShareModal(true);
+        }
+    }, [flash?.share_url]);
 
     // Track whether the current result has been saved
     const [hasSaved, setHasSaved] = useState(!!editingCalculationId);
@@ -189,6 +217,36 @@ export default function TaxCalculatorIndex({
                     setIsSaving(false);
                     setHasSaved(true);
                 },
+            },
+        );
+    };
+
+    // ─── Email Results (auth users only) ──────────────
+    const handleEmailResults = () => {
+        setIsSendingEmail(true);
+        router.post(
+            route("tax-calculator.email-results"),
+            { calculation_id: savedCalculationId },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => setEmailSent(true),
+                onFinish: () => setIsSendingEmail(false),
+            },
+        );
+    };
+
+    // ─── Share Link (auth users only) ─────────────────
+    const handleShareLink = () => {
+        setIsGeneratingLink(true);
+        router.post(
+            route("tax-calculator.generate-link"),
+            { calculation_id: savedCalculationId },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                // Modal opens reactively via the useEffect watching flash.share_url
+                onFinish: () => setIsGeneratingLink(false),
             },
         );
     };
@@ -424,7 +482,7 @@ export default function TaxCalculatorIndex({
                                 )}
 
                                 {/* Action Buttons */}
-                                <div className="flex gap-4 justify-center flex-wrap mt-12 mb-12">
+                                <div className="flex gap-4 justify-center flex-wrap mt-12 mb-6">
                                     <button
                                         type="button"
                                         onClick={handleRecalculate}
@@ -467,6 +525,92 @@ export default function TaxCalculatorIndex({
                                         </button>
                                     )}
 
+                                    {/* Email Results — auth only, requires saved calc */}
+                                    {auth?.user && (
+                                        <Tooltip
+                                            text={
+                                                !savedCalculationId
+                                                    ? "Save your calculation first to unlock this"
+                                                    : emailSent
+                                                      ? "Results already sent to your email"
+                                                      : "Send a full breakdown to your registered email"
+                                            }
+                                            position="top"
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={handleEmailResults}
+                                                disabled={
+                                                    isSendingEmail ||
+                                                    emailSent ||
+                                                    !savedCalculationId
+                                                }
+                                                className={`px-8 py-4 border-2 font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                    emailSent
+                                                        ? "border-green-500 text-green-600"
+                                                        : "border-primary text-primary hover:bg-primary hover:text-light"
+                                                }`}
+                                            >
+                                                {emailSent ? (
+                                                    <>
+                                                        <Check className="w-5 h-5" />
+                                                        Sent ✓
+                                                    </>
+                                                ) : isSendingEmail ? (
+                                                    <>
+                                                        <Mail className="w-5 h-5 animate-pulse" />
+                                                        Sending...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Mail className="w-5 h-5" />
+                                                        Email Results
+                                                    </>
+                                                )}
+                                            </button>
+                                        </Tooltip>
+                                    )}
+
+                                    {/* Share Link — auth only, requires saved calc */}
+                                    {auth?.user && (
+                                        <Tooltip
+                                            text={
+                                                !savedCalculationId
+                                                    ? "Save your calculation first to unlock this"
+                                                    : isGeneratingLink
+                                                      ? "Generating shareable link..."
+                                                      : "Generate a read-only link valid for 30 days"
+                                            }
+                                            position="top"
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={handleShareLink}
+                                                disabled={
+                                                    isGeneratingLink ||
+                                                    !savedCalculationId
+                                                }
+                                                className={`px-8 py-4 border-2 font-bold rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                    linkCopied
+                                                        ? "border-green-500 text-green-600"
+                                                        : "border-primary text-primary hover:bg-primary hover:text-light"
+                                                }`}
+                                            >
+                                                {isGeneratingLink ? (
+                                                    <>
+                                                        <Link2 className="w-5 h-5 animate-pulse" />
+                                                        Generating...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Link2 className="w-5 h-5" />
+                                                        Share Link
+                                                    </>
+                                                )}
+                                            </button>
+                                        </Tooltip>
+                                    )}
+
                                     <button
                                         onClick={() => window.print()}
                                         className="px-8 py-4 bg-primary hover:bg-dark text-light font-bold rounded-lg transition-all flex items-center gap-2"
@@ -475,6 +619,32 @@ export default function TaxCalculatorIndex({
                                         Print Results
                                     </button>
                                 </div>
+
+                                {/* Expiry & save-first warnings */}
+                                <div className="flex flex-col items-center gap-2 mb-12">
+                                    {auth?.user && !savedCalculationId && (
+                                        <p className="text-sm text-gray flex items-center gap-1.5">
+                                            <TriangleAlert className="w-4 h-4 text-amber-500" />
+                                            Save your calculation to unlock
+                                            Email &amp; Share features.
+                                        </p>
+                                    )}
+                                    {shareExpiry && (
+                                        <p className="text-sm text-amber-600 flex items-center gap-1.5">
+                                            <TriangleAlert className="w-4 h-4" />
+                                            Shareable link expires on{" "}
+                                            {shareExpiry}.
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Share Link Modal */}
+                                <ShareLinkModal
+                                    isOpen={showShareModal}
+                                    onClose={() => setShowShareModal(false)}
+                                    shareUrl={shareUrl}
+                                    expiresOn={shareExpiry}
+                                />
                             </>
                         )}
                     </>

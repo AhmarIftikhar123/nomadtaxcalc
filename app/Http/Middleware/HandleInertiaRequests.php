@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
                 'success'               => session('success'),
                 'error'                 => session('error'),
                 'saved_calculation_id'  => session('saved_calculation_id'),
+                'share_url'             => session('share_url'),
             ],
         ];
     }

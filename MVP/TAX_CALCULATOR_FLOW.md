@@ -1,236 +1,387 @@
-# Tax Calculator — End-to-End Flow
+# Tax Calculator — Complete Backend Flow Reference
 
-## System Architecture
+> **Purpose:** Every time you start a new task touching the tax calculator, read this file first.
+> It covers every route, controller method, service call, and DB write from the initial page load through Step 3 results — including the Email and Share Link features.
 
-```mermaid
-graph TB
-    subgraph "Frontend - React/Inertia.js"
-        A["Index.jsx<br/>Step 1 Form"] -->|"POST /step-1<br/>annual_income, currency,<br/>citizenship_country_id"| B["TaxCalculatorController<br/>storeStep1"]
-        B -->|"redirect /step-2"| C["Step2.jsx<br/>Countries + Days Form"]
-        C -->|"POST /step-2<br/>residency_periods[]"| D["TaxCalculatorController<br/>storeStep2"]
-        D -->|"redirect /step-3"| E["Step3.jsx<br/>Results Dashboard"]
-    end
+---
 
-    subgraph "Backend - Laravel Services"
-        B --> F["TaxCalculatorService<br/>saveStep1Data"]
-        F --> G["UserCalculation<br/>created/updated"]
+## 1. Routes at a Glance
 
-        D --> H["TaxCalculatorService<br/>saveStep2Data"]
-        H --> I["ResidencyDeterminationService<br/>determine residency"]
-        I --> J["UserCalculationCountry<br/>records created"]
+File: [web.php](file:///c:/xampp/htdocs/inertia/routes/web.php)
 
-        E --> K["TaxCalculatorService<br/>calculateTaxes"]
-    end
+| Method | URI | Middleware | Controller Method | Named Route |
+|--------|-----|-----------|-------------------|-------------|
+| `GET` | `/tax-calculator` | throttle:20 | [`index()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L34) | `tax-calculator.index` |
+| `POST` | `/tax-calculator/step-1` | throttle:20 | [`storeStep1()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L94) | `tax-calculator.step-1` |
+| `POST` | `/tax-calculator/step-2` | throttle:20 | [`storeStep2()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L111) | `tax-calculator.step-2.store` |
+| `GET` | `/tax-calculator/shared/{token}` | throttle:20 | [`viewShared()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L228) | `tax-calculator.shared` |
+| `POST` | `/tax-calculator/save` | auth, verified | [`saveCalculation()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L150) | `tax-calculator.save` |
+| `POST` | `/tax-calculator/email-results` | auth, verified | [`sendEmail()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L176) | `tax-calculator.email-results` |
+| `POST` | `/tax-calculator/generate-link` | auth, verified | [`generateLink()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L205) | `tax-calculator.generate-link` |
 
-    subgraph "Calculation Pipeline"
-        K --> L["Step 1: Retrieve<br/>Residency Results"]
-        L --> M["Step 2: TaxCalculationService<br/>calculateForCountry"]
-        M --> N["Step 3: TreatyResolutionService<br/>applyTreaty"]
-        N --> O["Step 4: FeieCalculationService<br/>calculate FEIE"]
-        O --> P["Step 5: Aggregate<br/>Totals"]
-        P --> Q["Step 6: RecommendationService<br/>generate"]
-        Q --> R["Step 7: Generate<br/>Residency Warnings"]
-        R --> S["Step 8: Save Results<br/>to UserCalculation"]
-    end
+---
 
-    subgraph "Database"
-        G --- T[("user_calculations")]
-        J --- U[("user_calculation_countries")]
-        M --- V[("tax_brackets<br/>+ tax_types")]
-        N --- W[("tax_treaties")]
-        I --- X[("countries")]
-        O --- Y[("settings<br/>FEIE config")]
-    end
+## 2. Key Files Map
+
+| Layer | File |
+|-------|------|
+| **Routes** | [routes/web.php](file:///c:/xampp/htdocs/inertia/routes/web.php) |
+| **Controller** | [TaxCalculatorController.php](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php) |
+| **Main Service (orchestrator)** | [TaxCalculatorService.php](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/TaxCalculatorService.php) |
+| **Residency Detection** | [ResidencyDeterminationService.php](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/ResidencyDeterminationService.php) |
+| **Tax Maths** | [TaxCalculationService.php](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/TaxCalculationService.php) |
+| **Treaty Resolution** | [TreatyResolutionService.php](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/TreatyResolutionService.php) |
+| **FEIE (US citizens)** | [FeieCalculationService.php](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/FeieCalculationService.php) |
+| **Recommendations** | [RecommendationService.php](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/RecommendationService.php) |
+| **Currency Conversion** | [CurrencyService.php](file:///c:/xampp/htdocs/inertia/app/Services/CurrencyService.php) |
+| **Step 1 Validation** | [StoreStep1Request.php](file:///c:/xampp/htdocs/inertia/app/Http/Requests/TaxCalculator/StoreStep1Request.php) |
+| **Step 2 Validation** | [StoreStep2Request.php](file:///c:/xampp/htdocs/inertia/app/Http/Requests/TaxCalculator/StoreStep2Request.php) |
+| **Main Model** | [UserCalculation.php](file:///c:/xampp/htdocs/inertia/app/Models/UserCalculation.php) |
+| **Country Pivot Model** | [UserCalculationCountry.php](file:///c:/xampp/htdocs/inertia/app/Models/UserCalculationCountry.php) |
+| **Mailable** | [TaxResultsMail.php](file:///c:/xampp/htdocs/inertia/app/Mail/TaxResultsMail.php) |
+| **Email Template** | [resources/views/emails/tax-results.blade.php](file:///c:/xampp/htdocs/inertia/resources/views/emails/tax-results.blade.php) |
+| **Inertia Middleware** | [HandleInertiaRequests.php](file:///c:/xampp/htdocs/inertia/app/Http/Middleware/HandleInertiaRequests.php) |
+| **Frontend — Calculator** | [Pages/TaxCalculator/Index.jsx](file:///c:/xampp/htdocs/inertia/resources/js/Pages/TaxCalculator/Index.jsx) |
+| **Frontend — Shared View** | [Pages/SharedCalculation/Show.jsx](file:///c:/xampp/htdocs/inertia/resources/js/Pages/SharedCalculation/Show.jsx) |
+| **Frontend — Share Modal** | [Components/Ui/ShareLinkModal.jsx](file:///c:/xampp/htdocs/inertia/resources/js/Components/Ui/ShareLinkModal.jsx) |
+| **Migration** | [2026_01_17_000007_create_user_calculations_table.php](file:///c:/xampp/htdocs/inertia/database/migrations/2026_01_17_000007_create_user_calculations_table.php) |
+
+---
+
+## 3. Step-by-Step Flow
+
+### 🔵 PAGE LOAD — `GET /tax-calculator`
+
+**Controller:** [`index()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L34)
+
+```
+Browser GETs /tax-calculator
+  └─ index() checks for ?calculation_id= query param
+      ├─ [EDIT MODE] auth user + ?calculation_id=X
+      │   └─ UserCalculation::where(id, user_id)->with('countriesVisited.country')
+      │       └─ TaxCalculatorService::rebuildPrefillFromCalculation()
+      │           └─ Inertia::render('TaxCalculator/Index') with prefilled data
+      └─ [NORMAL MODE] No query param
+          └─ Reads session('tax_calc_step1'), session('tax_calc_step2'), session('tax_calc_result')
+              └─ Inertia::render('TaxCalculator/Index') with session data (or nulls)
 ```
 
-## Detailed Calculation Flow
+**Props passed to frontend:**
+- `countries` — all active countries (id, name, iso_code, tax_basis, currency)
+- `states` — US states (for domicile_state_id)
+- `currencies` — distinct currency list
+- `availableYears` — from active `tax_brackets`
+- `taxTypes` — system defaults
+- `savedStep1Data` — previous Step 1 data (session or DB)
+- `savedResidencyPeriods` — previous periods (session or DB)
+- `calculationResult` — cached result if coming back
+- `editingCalculationId` — non-null only in edit mode
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Step1 as Index.jsx
-    participant Step2 as Step2.jsx
-    participant Step3 as Step3.jsx
-    participant Controller as TaxCalculatorController
-    participant Service as TaxCalculatorService
-    participant Residency as ResidencyDeterminationService
-    participant TaxCalc as TaxCalculationService
-    participant Treaty as TreatyResolutionService
-    participant FEIE as FeieCalculationService
-    participant Recommend as RecommendationService
-    participant DB as Database
+---
 
-    User->>Step1: Enter income, currency, country
-    Step1->>Controller: POST /tax-calculator/step-1
-    Controller->>Service: saveStep1Data(data, sessionUuid)
-    Service->>DB: updateOrCreate UserCalculation
-    DB-->>Service: calculation record
-    Service-->>Controller: calculation
-    Controller-->>Step2: redirect to /step-2
+### 🟡 STEP 1 — `POST /tax-calculator/step-1`
 
-    User->>Step2: Add countries + days spent
-    Step2->>Controller: POST /tax-calculator/step-2
-    Controller->>Service: saveStep2Data(calculation, periods)
-    Service->>Residency: determine(countriesVisited)
-
-    loop For each country
-        Residency->>DB: Country::find(country_id)
-        DB-->>Residency: country with tax_residency_days
-        Residency->>Residency: Apply arrival/departure rules
-        Residency->>Residency: Compare days vs threshold
-    end
-
-    Residency-->>Service: residencyResults[]
-    Service->>DB: Create UserCalculationCountry records
-    Service-->>Controller: done
-    Controller-->>Step3: redirect to /step-3
-
-    User->>Step3: View results
-    Step3->>Controller: GET /tax-calculator/step-3
-    Controller->>Service: calculateTaxes(calculation)
-
-    Service->>DB: Load countriesVisited with country
-    Service->>Service: Build residencyResults array
-
-    loop For each tax-resident country
-        Service->>TaxCalc: allocateIncome(income, days)
-        TaxCalc-->>Service: allocatedIncome
-
-        alt Progressive Tax
-            Service->>TaxCalc: calculateForCountry(country, income)
-            TaxCalc->>DB: Query tax_brackets WHERE country_id AND tax_type_id=income_tax
-            DB-->>TaxCalc: brackets ordered by min_income
-            TaxCalc->>TaxCalc: Apply progressive bracket logic
-        else Flat Tax
-            TaxCalc->>TaxCalc: income × flat_tax_rate
-        end
-
-        TaxCalc-->>Service: taxResult with tax_due, effective_rate
-        Service->>DB: Update UserCalculationCountry
-    end
-
-    Service->>Treaty: applyTreaty(citizenshipId, breakdown)
-
-    loop For each non-citizenship country
-        Treaty->>DB: TaxTreaty::between(citizenship, residence)
-        DB-->>Treaty: treaty with type
-
-        alt Credit Method
-            Treaty->>Treaty: tax_due × 0.85
-        else Exemption
-            Treaty->>Treaty: tax_due = 0
-        else Partial
-            Treaty->>Treaty: tax_due × 0.5
-        end
-    end
-
-    Treaty-->>Service: adjustedResults + treatiesApplied
-
-    Service->>FEIE: calculate(citizenshipId, residency, income)
-
-    alt US Citizen
-        FEIE->>DB: Setting::get feie_amount_2026
-        FEIE->>FEIE: Count days outside US
-        alt Days >= 330
-            FEIE-->>Service: eligible, excludedIncome
-            Service->>TaxCalc: Recalculate US tax on reduced income
-        else Days < 330
-            FEIE-->>Service: not eligible
-        end
-    else Non-US Citizen
-        FEIE-->>Service: null
-    end
-
-    Service->>Service: Aggregate totalTax, netIncome, effectiveRate
-
-    Service->>Recommend: generate(residency, breakdown, totalTax)
-    Recommend->>DB: Query zero-tax countries with DN visas
-    Recommend-->>Service: recommendations[]
-
-    Service->>Residency: generateWarnings(residencyResults)
-    Residency-->>Service: warnings[]
-
-    Service->>DB: Update UserCalculation with final results
-    Service-->>Controller: complete result object
-    Controller-->>Step3: Inertia render with result
-
-    Step3->>Step3: Render ResultMetricsCards
-    Step3->>Step3: Render ResidencyRiskAlert
-    Step3->>Step3: Render TaxLiabilityComparison
-    Step3->>Step3: Render DetailedTaxBreakdown
-    Step3->>Step3: Render SmartRecommendations
+**Validation:** [`StoreStep1Request`](file:///c:/xampp/htdocs/inertia/app/Http/Requests/TaxCalculator/StoreStep1Request.php)
+```
+annual_income   required|numeric|min:0
+currency        required|string|size:3
+citizenship_country_id  required|exists:countries,id
+tax_year        required|integer|min:2020|max:2099
+domicile_state_id       nullable|exists:states,id
 ```
 
-## Data Flow Summary
+**Controller:** [`storeStep1()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L94)
 
-```mermaid
-erDiagram
-    countries ||--o{ tax_brackets : "has many"
-    countries ||--o{ user_calculation_countries : "visited in"
-    tax_types ||--o{ tax_brackets : "categorizes"
-    user_calculations ||--o{ user_calculation_countries : "includes"
-    countries ||--o{ tax_treaties : "country_a"
-    countries ||--o{ tax_treaties : "country_b"
+```
+POST /tax-calculator/step-1
+  └─ TaxCalculatorService::buildSessionStep1Payload()
+      └─ Country::findOrFail(citizenship_country_id)  ← resolves country code & name
+          └─ session(['tax_calc_step1' => payload])    ← NO DB write
+              └─ session()->forget(['tax_calc_step2', 'tax_calc_result'])  ← clears stale data
+                  └─ redirect()->route('tax-calculator.index')  ← frontend re-renders at Step 2
+```
 
-    countries {
-        int id PK
-        string name
-        string iso_code UK
-        boolean has_progressive_tax
-        decimal flat_tax_rate
-        int tax_residency_days
-        boolean has_digital_nomad_visa
-    }
+**Session payload stored (`tax_calc_step1`):**
+```json
+{
+  "citizenship_country_id": 1,
+  "citizenship_country_code": "US",
+  "citizenship_country_name": "United States",
+  "annual_income": 140000,
+  "currency": "USD",
+  "tax_year": 2026,
+  "domicile_state_id": null
+}
+```
 
-    tax_types {
-        int id PK
-        string key UK
-        string name
-        boolean is_default
-    }
+> ⚠️ **No DB write in Step 1.** Pure session storage.
 
-    tax_brackets {
-        int id PK
-        int country_id FK
-        int tax_type_id FK
-        year tax_year
-        decimal min_income
-        decimal max_income
-        decimal rate
-    }
+---
 
-    tax_treaties {
-        int id PK
-        int country_a_id FK
-        int country_b_id FK
-        string treaty_type
-        year applicable_tax_year
-    }
+### 🟠 STEP 2 — `POST /tax-calculator/step-2`
 
-    user_calculations {
-        int id PK
-        uuid session_uuid UK
-        int country_id FK
-        decimal gross_income
-        string currency
-        decimal total_tax
-        decimal net_income
-        json tax_breakdown
-    }
+**Validation:** [`StoreStep2Request`](file:///c:/xampp/htdocs/inertia/app/Http/Requests/TaxCalculator/StoreStep2Request.php) — validates `residency_periods[]`
 
-    user_calculation_countries {
-        int id PK
-        int user_calculation_id FK
-        int country_id FK
-        int days_spent
-        boolean is_tax_resident
-        decimal tax_due
-        json tax_by_type
-    }
+**Controller:** [`storeStep2()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L111)
 
-    settings {
-        int id PK
-        string key UK
-        string value
-    }
+```
+POST /tax-calculator/step-2
+  └─ reads session('tax_calc_step1')  ← if missing: redirect to Step 1 with error
+      └─ session(['tax_calc_step2' => $periods])
+          └─ Cache::remember(md5(step1 + periods), 1 hour)
+              └─ TaxCalculatorService::calculateTaxesFromSession()  ← THE CORE ENGINE
+                  └─ session(['tax_calc_result' => $result])
+                      └─ back()->with(['calculationResult' => $result])  ← Inertia receives result
+```
+
+> ⚠️ **No DB write in Step 2.** Result cached in Laravel Cache (1 hour TTL) keyed by md5 hash of inputs.
+
+---
+
+### ⚙️ CORE CALCULATION ENGINE — `TaxCalculatorService::calculateTaxesFromSession()`
+
+File: [TaxCalculatorService.php](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/TaxCalculatorService.php#L92)
+
+The pipeline runs **6 internal steps** in sequence:
+
+#### Sub-step 1 — Residency Determination
+[`ResidencyDeterminationService::determine($periods)`](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/ResidencyDeterminationService.php)
+- Compares days_spent against each country's `tax_residency_days` threshold
+- Optionally subtracts arrival/departure days per country rule
+- Tags each period as `is_tax_resident: true/false`
+- Generates near-threshold or barely-resident warnings
+
+#### Sub-step 2 — Tax Per Resident Country
+[`TaxCalculationService::allocateIncome()`](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/TaxCalculationService.php) → [`calculateForCountry()`](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/TaxCalculationService.php)
+- Only tax-resident periods are taxed
+- **Territorial countries** use `local_income` directly (converted to base currency via `CurrencyService`)
+- **Worldwide countries** allocate `annual_income × (days/365)`
+- `calculateForCountry()` applies progressive brackets, flat tax, or custom tax types from `tax_brackets` table
+- State-level taxes applied if `state_id` provided
+
+#### Sub-step 3 — Treaty Resolution
+[`TreatyResolutionService::applyTreaty()`](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/TreatyResolutionService.php)
+- Looks up treaties between citizenship country and each resident country
+- **Credit treaties**: reduce home-country tax by the amount paid abroad
+- **Exemption treaties**: eliminate double taxation for non-residents
+- **FTC fallback**: even without a formal treaty, applies Foreign Tax Credit if not resident in home country
+- Returns updated `$countryBreakdown` + `$treatiesApplied[]`
+
+#### Sub-step 4 — FEIE (US Citizens Only)
+[`FeieCalculationService::calculate()`](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/FeieCalculationService.php)
+- Only runs if citizenship country is USA (`iso_code = 'US'`)
+- Checks `bona_fide_residence` or `physical_presence` test eligibility
+- Reads FEIE limit from `settings` table for the given `tax_year`
+- If eligible: reduces taxable income for US, recalculates US tax
+
+#### Sub-step 5 — Aggregation
+```
+total_tax        = sum(tax_due across all countries)
+net_income       = annual_income - total_tax
+effective_rate   = (total_tax / annual_income) × 100
+```
+
+#### Sub-step 6 — Recommendations & Warnings
+[`RecommendationService::generate()`](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/RecommendationService.php)
+- Generates actionable tax optimization tips
+- [`ResidencyDeterminationService::generateWarnings()`](file:///c:/xampp/htdocs/inertia/app/Services/TaxCalculator/ResidencyDeterminationService.php) — near-threshold alerts
+
+**Final result shape:**
+```json
+{
+  "annual_income": 140000,
+  "currency": "USD",
+  "tax_year": 2026,
+  "total_tax": 44175,
+  "net_income": 95825,
+  "effective_tax_rate": 31.57,
+  "breakdown_by_country": [...],
+  "residency_warnings": [...],
+  "residency_data": [...],
+  "comparison_data": [...],
+  "treaties_applied": [...],
+  "feie_result": {...},
+  "recommendations": [...]
+}
+```
+
+---
+
+### 🟢 STEP 3 — Results Page (Frontend-Driven)
+
+The frontend receives the result from `calculationResult` prop (or `flash.calculationResult` after Step 2 submit).
+
+Frontend file: [Index.jsx](file:///c:/xampp/htdocs/inertia/resources/js/Pages/TaxCalculator/Index.jsx)
+
+**Result display components (all in** [Components/TaxCalculator/](file:///c:/xampp/htdocs/inertia/resources/js/Components/TaxCalculator)**)**:
+
+| Component | Data Used |
+|-----------|-----------|
+| `ResultMetricsCards` | total_tax, net_income, effective_tax_rate |
+| `TaxCalculationFlow` | breakdown_by_country |
+| `TaxLiabilityComparison` | comparison_data |
+| `DetailedTaxBreakdown` | breakdown_by_country |
+| `TreatiesApplied` | treaties_applied (keys: `countries[]`, `type`, `tax_saved`) |
+| `FEIEStatus` | feie_result |
+| `ResidencyInsights` | residency_data |
+| `SmartRecommendations` | recommendations |
+| `ResidencyRiskAlert` | residency_warnings |
+
+---
+
+### 💾 SAVE CALCULATION — `POST /tax-calculator/save` *(auth + verified)*
+
+**Controller:** [`saveCalculation()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L150)
+
+```
+POST /tax-calculator/save  { calculation_id: null | existingId }
+  └─ reads session(tax_calc_step1, step2, result)
+      └─ TaxCalculatorService::saveCalculationForUser()
+          ├─ [CREATE] calculation_id is null  → UserCalculation::create()
+          └─ [UPDATE] calculation_id present  → UserCalculation::where(id, user_id)->update()
+              └─ countriesVisited()->delete() then re-create UserCalculationCountry rows
+                  └─ back()->with('saved_calculation_id', $id)   ← triggers flash useEffect in frontend
+```
+
+**DB Tables Written:**
+- [`user_calculations`](file:///c:/xampp/htdocs/inertia/database/migrations/2026_01_17_000007_create_user_calculations_table.php) — main record
+- `user_calculation_countries` — one row per residency period
+
+**Flash key forwarded by middleware:** `saved_calculation_id` → `flash.saved_calculation_id` in React
+
+---
+
+### 📧 EMAIL RESULTS — `POST /tax-calculator/email-results` *(auth + verified)*
+
+**Controller:** [`sendEmail()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L176)
+
+```
+POST /tax-calculator/email-results  { calculation_id: X }
+  └─ UserCalculation::where(id, user_id)->firstOrFail()
+      └─ if !isShareActive():  generate share_token + share_expires_at = +30 days
+          └─ $shareUrl = route('tax-calculator.shared', share_token)
+              └─ Mail::to(user->email)->send(new TaxResultsMail($calculation, $shareUrl))
+                  └─ $calculation->update(['email_sent_at' => now()])
+                      └─ back()->with('success', 'Results sent to ...')
+```
+
+**Mailable:** [TaxResultsMail.php](file:///c:/xampp/htdocs/inertia/app/Mail/TaxResultsMail.php)
+**Template:** [emails/tax-results.blade.php](file:///c:/xampp/htdocs/inertia/resources/views/emails/tax-results.blade.php)
+
+> **Dev tip:** Set `MAIL_MAILER=log` → emails captured in `storage/logs/laravel.log`
+
+---
+
+### 🔗 GENERATE SHARE LINK — `POST /tax-calculator/generate-link` *(auth + verified)*
+
+**Controller:** [`generateLink()`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L205)
+
+```
+POST /tax-calculator/generate-link  { calculation_id: X }
+  └─ UserCalculation::where(id, user_id)->firstOrFail()
+      └─ update({ share_token: Str::random(64), share_expires_at: now()+30d })
+          └─ back()->with('share_url', route('tax-calculator.shared', token))
+```
+
+**Inertia middleware** ([HandleInertiaRequests.php](file:///c:/xampp/htdocs/inertia/app/Http/Middleware/HandleInertiaRequests.php#L44)) forwards `share_url` → `flash.share_url`
+
+**Frontend:** `useEffect(() => { if (flash?.share_url) setShowShareModal(true) }, [flash?.share_url])`
+→ Opens [ShareLinkModal.jsx](file:///c:/xampp/htdocs/inertia/resources/js/Components/Ui/ShareLinkModal.jsx)
+
+---
+
+### 🌐 VIEW SHARED PAGE — `GET /tax-calculator/shared/{token}` *(public)*
+
+**Controller:** [`viewShared(string $token)`](file:///c:/xampp/htdocs/inertia/app/Http/Controllers/TaxCalculator/TaxCalculatorController.php#L228)
+
+```
+GET /tax-calculator/shared/{token}
+  └─ UserCalculation::where('share_token', $token)->with('countriesVisited.country')
+      ├─ not found → Inertia::render('SharedCalculation/Show', { expired: true })
+      ├─ isShareActive() === false → Inertia::render with { expired: true, expiredAt: date }
+      └─ valid → builds result array from stored JSON columns
+          └─ Inertia::render('SharedCalculation/Show', { expired: false, result, shareExpiresAt })
+```
+
+**Frontend:** [SharedCalculation/Show.jsx](file:///c:/xampp/htdocs/inertia/resources/js/Pages/SharedCalculation/Show.jsx)
+
+---
+
+## 4. Session Keys Reference
+
+| Key | Set By | Cleared By | Contains |
+|-----|--------|------------|---------|
+| `tax_calc_step1` | `storeStep1()` | `storeStep1()` on re-submit | Income, currency, citizenship, year |
+| `tax_calc_step2` | `storeStep2()` | `storeStep1()` on re-submit | Residency periods array |
+| `tax_calc_result` | `storeStep2()` | `storeStep1()` on re-submit | Full result JSON |
+
+---
+
+## 5. DB Columns — `user_calculations`
+
+Migration: [2026_01_17_000007_create_user_calculations_table.php](file:///c:/xampp/htdocs/inertia/database/migrations/2026_01_17_000007_create_user_calculations_table.php)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `share_token` | `string(64)\|unique\|null` | Random 64-char token for public share URLs |
+| `share_expires_at` | `timestamp\|null` | Set to now()+30 days when link/email generated |
+| `email_sent_at` | `timestamp\|null` | Updated when email successfully dispatched |
+| `tax_breakdown` | `json` | Stored `breakdown_by_country` array |
+| `treaty_applied` | `json` | Stores `[{countries[], type, tax_saved}]` |
+| `feie_result` | `json` | Stores FEIE calculation result |
+
+---
+
+## 6. Inertia Flash Keys
+
+All flash data must be whitelisted in [HandleInertiaRequests.php](file:///c:/xampp/htdocs/inertia/app/Http/Middleware/HandleInertiaRequests.php#L44):
+
+| Flash Key | Set By | Purpose |
+|-----------|--------|---------|
+| `success` | Multiple controllers | Toast / success message |
+| `error` | Multiple controllers | Toast / error message |
+| `saved_calculation_id` | `saveCalculation()` | Frontend sets `savedCalculationId` state |
+| `share_url` | `generateLink()` | Frontend opens `ShareLinkModal` |
+
+> ⚠️ **Adding a new flash key?** You MUST add it to `HandleInertiaRequests::share()` or it will never reach React.
+
+---
+
+## 7. Data Flow Summary
+
+```
+Browser
+  │
+  ├─ Step 1 form submit → POST /step-1
+  │     └─ session[tax_calc_step1] = {income, currency, country, year}
+  │
+  ├─ Step 2 form submit → POST /step-2
+  │     └─ session[tax_calc_step2] = [{country_id, days_spent, ...}]
+  │     └─ Cache::remember → TaxCalculatorService::calculateTaxesFromSession()
+  │           ├─ ResidencyDeterminationService
+  │           ├─ TaxCalculationService (per country)
+  │           ├─ TreatyResolutionService
+  │           ├─ FeieCalculationService (US only)
+  │           ├─ RecommendationService
+  │           └─ returns result{}
+  │     └─ session[tax_calc_result] = result{}
+  │     └─ back()->with(calculationResult)  ← Inertia renders Step 3
+  │
+  ├─ "Save Calculation" → POST /save  [auth]
+  │     └─ TaxCalculatorService::saveCalculationForUser()
+  │           → user_calculations + user_calculation_countries (DB write)
+  │     └─ flash[saved_calculation_id]  → frontend unlocks Email/Share buttons
+  │
+  ├─ "Email Results" → POST /email-results  [auth]
+  │     └─ auto-generate share_token if needed
+  │     └─ Mail::send(TaxResultsMail)
+  │     └─ user_calculations.email_sent_at = now()
+  │
+  ├─ "Share Link" → POST /generate-link  [auth]
+  │     └─ refreshes share_token + share_expires_at
+  │     └─ flash[share_url] → frontend opens ShareLinkModal
+  │
+  └─ Public share URL → GET /shared/{token}
+        └─ validates token + expiry
+        └─ Inertia::render('SharedCalculation/Show')
 ```

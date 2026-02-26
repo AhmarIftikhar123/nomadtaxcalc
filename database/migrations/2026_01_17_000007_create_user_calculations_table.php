@@ -47,6 +47,11 @@ return new class extends Migration
             $table->string('device_type', 50)->nullable();
             $table->string('referrer', 255)->nullable();
 
+            // Shareable link & email features
+            $table->string('share_token', 64)->nullable()->unique();
+            $table->timestamp('share_expires_at')->nullable();
+            $table->timestamp('email_sent_at')->nullable();
+
             $table->timestamps();
             $table->softDeletes();
 

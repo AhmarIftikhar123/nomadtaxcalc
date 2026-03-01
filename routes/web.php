@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\CurrencyController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingPage\LandingPageController;
 use App\Http\Controllers\Newsletter\NewsletterController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\StudentController;
 use App\Http\Controllers\TaxCalculator\SavedCalculationController;
+use App\Http\Controllers\TaxCalculator\ScenarioComparisonController;
 use App\Http\Controllers\TaxCalculator\TaxCalculatorController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +26,10 @@ Route::middleware('throttle:20,1')->group(function () {
         Route::post('/step-2', [TaxCalculatorController::class, 'storeStep2'])->name('tax-calculator.step-2.store');
         // Public shared results page (token acts as access credential)
         Route::get('/shared/{token}', [TaxCalculatorController::class, 'viewShared'])->name('tax-calculator.shared');
+
+        // Scenario Comparison (public — same as main calculator)
+        Route::get('/compare', [ScenarioComparisonController::class, 'index'])->name('tax-calculator.compare');
+        Route::post('/compare', [ScenarioComparisonController::class, 'compare'])->name('tax-calculator.compare.run');
     });
 
     // Currency endpoint — public, lazy-loaded by frontend when territorial country added
@@ -54,10 +60,6 @@ Route::middleware('throttle:20,1')->group(function () {
         Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-        Route::get('/dashboard', function () {
-            return Inertia::render('Dashboard');
-        });
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     });
-    // temporary Route
-    Route::get('dashboard', fn() => Inertia::render('Dashboard'))->name('dashboard');
 });

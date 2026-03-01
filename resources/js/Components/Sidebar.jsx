@@ -8,6 +8,7 @@ import {
     Settings,
     HelpCircle,
     LogOut,
+    GitCompare,
 } from "lucide-react";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 import { Link, usePage } from "@inertiajs/react";
@@ -24,6 +25,14 @@ export default function Sidebar({ user, isCollapsed, isMobileOpen }) {
             label: "Dashboard",
             href: route("dashboard"),
             authOnly: true,
+            activeRoutes: ["dashboard"],
+        },
+        {
+            icon: FileText,
+            label: "My Calculations",
+            href: route("my-calculations.index"),
+            authOnly: true,
+            activeRoutes: ["my-calculations.index"],
         },
         {
             icon: FileText,
@@ -33,11 +42,14 @@ export default function Sidebar({ user, isCollapsed, isMobileOpen }) {
             activeRoutes: ["tax-calculator.index"],
         },
         {
-            icon: FileText,
-            label: "My Calculations",
-            href: route("my-calculations.index"),
-            authOnly: true,
-            activeRoutes: ["my-calculations.index"],
+            icon: GitCompare,
+            label: "Scenario Comparison",
+            href: route("tax-calculator.index", {
+                scenario_comparison: "true",
+            }),
+            authOnly: false,
+            activeRoutes: ["tax-calculator.index"],
+            query: { scenario_comparison: "true" },
         },
         // {
         //     icon: Globe,
@@ -79,21 +91,26 @@ export default function Sidebar({ user, isCollapsed, isMobileOpen }) {
 
     // Check if a menu item is active
     const isActive = (item) => {
-        if (item.activeRoutes) {
-            return item.activeRoutes.some((routeName) => {
-                try {
-                    return url.includes(route(routeName, undefined, false));
-                } catch {
-                    return false;
-                }
-            });
+        if (!item.activeRoutes) return false;
+
+        const routeMatch = item.activeRoutes.some((routeName) =>
+            route().current(routeName),
+        );
+
+        if (!routeMatch) return false;
+
+        // If item requires query match
+        if (item.query) {
+            const currentParams = route().params;
+
+            return Object.keys(item.query).every(
+                (key) => currentParams[key] === item.query[key],
+            );
         }
-        if (!item.href) return false;
-        try {
-            return url.startsWith(new URL(item.href).pathname);
-        } catch {
-            return url === item.href;
-        }
+
+        // If no query restriction, ensure scenario_comparison is NOT true
+        const currentParams = route().params;
+        return !currentParams.scenario_comparison;
     };
 
     // Logo href depends on auth

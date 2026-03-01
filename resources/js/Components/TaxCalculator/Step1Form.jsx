@@ -14,6 +14,7 @@ export default function Step1Form({
     currencies,
     availableYears,
     processing,
+    isScenarioComparisonMode,
 }) {
     const selectedCountry = countries.find(
         (c) => c.id === Number(data.citizenship_country_id),
@@ -194,7 +195,9 @@ export default function Step1Form({
                     </>
                 ) : (
                     <>
-                        Continue to Step 2
+                        {isScenarioComparisonMode
+                            ? "Build Comparison Scenarios"
+                            : "Continue to Step 2"}
                         <ArrowRight className="w-5 h-5" />
                     </>
                 )}

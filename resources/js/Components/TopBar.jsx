@@ -146,8 +146,8 @@ export default function TopBar({
                     ) : (
                         /* Guest User Section */
                         <Tooltip
-                            text="Login to monitor US tax thresholds & many more benefits."
-                            position="left"
+                            text="Login to save calculations, create public shareable links, email yourself results, and access many more features."
+                            position="bottom"
                         >
                             <Link
                                 href={route("login")}

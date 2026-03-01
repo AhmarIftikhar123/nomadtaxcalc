@@ -27,13 +27,13 @@ export default function Form1Summary({ formData }) {
         "Unknown";
 
     return (
-        <div className="bg-white rounded-xl border border-border-gray p-6 md:p-8 shadow-sm mb-8">
+        <div className="bg-white rounded-xl border border-border-gray p-5 sm:p-6 md:p-8 shadow-sm mb-8">
             <h3 className="text-lg font-bold text-primary mb-6 flex items-center gap-2">
                 <Briefcase className="w-5 h-5" />
                 Your Information from Step 1
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Annual Gross Income */}
                 <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-primary bg-opacity-10 rounded-lg flex items-center justify-center">

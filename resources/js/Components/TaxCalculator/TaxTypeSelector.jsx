@@ -185,7 +185,7 @@ function TaxTypeEntry({
     return (
         <div className="bg-white rounded-lg border border-border-gray p-4 space-y-3">
             {/* Header with Remove Button */}
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-2 relative">
                 <div className="flex-1 space-y-3">
                     {/* Tax Type Selection (with creatable mode) */}
                     <Select
@@ -232,7 +232,7 @@ function TaxTypeEntry({
                 <button
                     type="button"
                     onClick={onRemove}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors md:relative md:top-0 md:right-0 absolute top-[-7%] right-[-7%]"
                     title="Remove"
                 >
                     <X className="w-5 h-5" />
@@ -244,7 +244,7 @@ function TaxTypeEntry({
                 <label className="block text-sm font-semibold text-primary mb-2">
                     Tax Type
                 </label>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <button
                         type="button"
                         onClick={() => onUpdate("amount_type", "percentage")}

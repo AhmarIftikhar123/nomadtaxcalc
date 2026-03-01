@@ -71,8 +71,8 @@ export default function ResidencyPeriodItem({
 
     return (
         <div className="space-y-2">
-            <div className="bg-light rounded-lg p-4 md:p-6 flex items-center justify-between border border-border-gray hover:border-primary hover:border-opacity-50 transition">
-                <div className="flex items-center gap-4 flex-1">
+            <div className="bg-light rounded-lg p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-border-gray hover:border-primary hover:border-opacity-50 transition">
+                <div className="flex items-center gap-4 w-full sm:flex-1">
                     {/* Country Flag */}
                     <img
                         src={`https://flagcdn.com/w80/${flagCode}.png`}
@@ -107,8 +107,8 @@ export default function ResidencyPeriodItem({
                 </div>
 
                 {/* Days Spent */}
-                <div className="flex items-center gap-4">
-                    <div className="text-right">
+                <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0 border-t sm:border-t-0 border-border-gray pt-4 sm:pt-0">
+                    <div className="text-left sm:text-right">
                         <p className="text-2xl font-bold text-primary">
                             {days}
                         </p>
@@ -130,7 +130,7 @@ export default function ResidencyPeriodItem({
 
             {/* ── Territorial / Remittance Income Field ──────────────────────── */}
             {isTerritorial && (
-                <div className="ml-16 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="mt-4 sm:mt-0 sm:ml-16 bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-start gap-2 mb-3">
                         <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-blue-800">
@@ -143,7 +143,7 @@ export default function ResidencyPeriodItem({
                         How much did you earn while in {countryDisplayName}?
                     </label>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col md:flex-row md:items-center items-start gap-2">
                         {/* Amount Input */}
                         <input
                             type="number"
@@ -155,7 +155,7 @@ export default function ResidencyPeriodItem({
                                 onUpdate("local_income", e.target.value)
                             }
                             placeholder="0.00"
-                            className="w-44 px-3 py-2 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                            className="md:w-44 w-full px-3 py-3 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 outline-none"
                         />
 
                         {/* Currency Selector — lazy-loaded */}
@@ -165,7 +165,7 @@ export default function ResidencyPeriodItem({
                                 <span>Loading…</span>
                             </div>
                         ) : availableCurrencies.length > 1 ? (
-                            <div className="w-52">
+                            <div className="md:w-52 w-full">
                                 <Select
                                     value={activeCurrency}
                                     onChange={(val) =>
@@ -174,7 +174,7 @@ export default function ResidencyPeriodItem({
                                     }
                                     options={availableCurrencies}
                                     placeholder="Currency…"
-                                    className="!py-2 !px-4"
+                                    className="md:!py-2 md:!px-4 !px-0 py-0"
                                 />
                             </div>
                         ) : (
@@ -201,7 +201,7 @@ export default function ResidencyPeriodItem({
             )}
 
             {/* Tax Type Selector */}
-            <div className="pl-16">
+            <div className="pl-0 mt-4 sm:pl-16 sm:mt-0">
                 <TaxTypeSelector
                     countryName={countryDisplayName}
                     value={selectedTaxTypes}

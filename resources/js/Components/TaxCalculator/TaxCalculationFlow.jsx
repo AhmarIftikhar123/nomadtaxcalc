@@ -82,7 +82,7 @@ export default function TaxCalculationFlow({ result }) {
                                 <p className="text-sm text-gray uppercase tracking-wide font-bold mb-1">
                                     Starting Point
                                 </p>
-                                <div className="flex items-baseline gap-2">
+                                <div className="flex flex-col md:flex-row items-baseline gap-2">
                                     <span className="text-2xl font-bold text-primary">
                                         {formatCurrency(result.annual_income)}
                                     </span>
@@ -105,7 +105,7 @@ export default function TaxCalculationFlow({ result }) {
                                 return (
                                     <div
                                         key={country.country_id}
-                                        className="relative pl-8 md:pl-0"
+                                        className="relative pl-0 md:pl-0"
                                     >
                                         {/* Connector Line (Desktop) */}
                                         <div className="hidden md:block absolute left-8 top-0 bottom-0 w-0.5 bg-border-gray -z-10 last:bottom-auto"></div>
@@ -146,7 +146,7 @@ export default function TaxCalculationFlow({ result }) {
                                                         <p className="font-bold text-primary mb-1">
                                                             Residency Test
                                                         </p>
-                                                        <div className="text-sm text-gray flex flex-wrap gap-x-6 gap-y-2">
+                                                        <div className="text-sm text-gray flex no-wrap md:flex-wrap gap-x-2 md:gap-x-6 gap-y-2">
                                                             <span>
                                                                 Days Spent:{" "}
                                                                 <strong className="text-primary">
@@ -330,66 +330,68 @@ export default function TaxCalculationFlow({ result }) {
                                                                                 .length >
                                                                                 0 && (
                                                                                 <div className="border-t border-border-gray bg-white">
-                                                                                    <table className="w-full text-xs text-left">
-                                                                                        <thead className="bg-light/50 text-gray">
-                                                                                            <tr>
-                                                                                                <th className="py-2 px-3 font-medium">
-                                                                                                    Bracket
-                                                                                                    Range
-                                                                                                </th>
-                                                                                                <th className="py-2 px-3 font-medium text-right">
-                                                                                                    Taxable
-                                                                                                </th>
-                                                                                                <th className="py-2 px-3 font-medium text-right">
-                                                                                                    Rate
-                                                                                                </th>
-                                                                                                <th className="py-2 px-3 font-medium text-right">
-                                                                                                    Tax
-                                                                                                </th>
-                                                                                            </tr>
-                                                                                        </thead>
-                                                                                        <tbody className="divide-y divide-border-gray/50">
-                                                                                            {item.bracket_details.map(
-                                                                                                (
-                                                                                                    bracket,
-                                                                                                    bIdx,
-                                                                                                ) => (
-                                                                                                    <tr
-                                                                                                        key={
-                                                                                                            bIdx
-                                                                                                        }
-                                                                                                        className="hover:bg-light/30 transition-colors"
-                                                                                                    >
-                                                                                                        <td className="py-2 px-3 text-gray">
-                                                                                                            {formatCurrency(
-                                                                                                                bracket.min_income,
-                                                                                                            )}{" "}
-                                                                                                            {bracket.max_income
-                                                                                                                ? ` - ${formatCurrency(bracket.max_income)}`
-                                                                                                                : "+"}
-                                                                                                        </td>
-                                                                                                        <td className="py-2 px-3 text-right font-medium">
-                                                                                                            {formatCurrency(
-                                                                                                                bracket.taxable_amount,
-                                                                                                            )}
-                                                                                                        </td>
-                                                                                                        <td className="py-2 px-3 text-right text-gray">
-                                                                                                            {Math.round(
-                                                                                                                bracket.rate,
-                                                                                                            )}
+                                                                                    <div className="overflow-x-auto w-full">
+                                                                                        <table className="w-full text-xs text-left min-w-[400px]">
+                                                                                            <thead className="bg-light/50 text-gray">
+                                                                                                <tr>
+                                                                                                    <th className="py-2 px-3 font-medium">
+                                                                                                        Bracket
+                                                                                                        Range
+                                                                                                    </th>
+                                                                                                    <th className="py-2 px-3 font-medium text-right">
+                                                                                                        Taxable
+                                                                                                    </th>
+                                                                                                    <th className="py-2 px-3 font-medium text-right">
+                                                                                                        Rate
+                                                                                                    </th>
+                                                                                                    <th className="py-2 px-3 font-medium text-right">
+                                                                                                        Tax
+                                                                                                    </th>
+                                                                                                </tr>
+                                                                                            </thead>
+                                                                                            <tbody className="divide-y divide-border-gray/50">
+                                                                                                {item.bracket_details.map(
+                                                                                                    (
+                                                                                                        bracket,
+                                                                                                        bIdx,
+                                                                                                    ) => (
+                                                                                                        <tr
+                                                                                                            key={
+                                                                                                                bIdx
+                                                                                                            }
+                                                                                                            className="hover:bg-light/30 transition-colors"
+                                                                                                        >
+                                                                                                            <td className="py-2 px-3 text-gray">
+                                                                                                                {formatCurrency(
+                                                                                                                    bracket.min_income,
+                                                                                                                )}{" "}
+                                                                                                                {bracket.max_income
+                                                                                                                    ? ` - ${formatCurrency(bracket.max_income)}`
+                                                                                                                    : "+"}
+                                                                                                            </td>
+                                                                                                            <td className="py-2 px-3 text-right font-medium">
+                                                                                                                {formatCurrency(
+                                                                                                                    bracket.taxable_amount,
+                                                                                                                )}
+                                                                                                            </td>
+                                                                                                            <td className="py-2 px-3 text-right text-gray">
+                                                                                                                {Math.round(
+                                                                                                                    bracket.rate,
+                                                                                                                )}
 
-                                                                                                            %
-                                                                                                        </td>
-                                                                                                        <td className="py-2 px-3 text-right font-bold text-primary">
-                                                                                                            {formatCurrency(
-                                                                                                                bracket.tax_applied,
-                                                                                                            )}
-                                                                                                        </td>
-                                                                                                    </tr>
-                                                                                                ),
-                                                                                            )}
-                                                                                        </tbody>
-                                                                                    </table>
+                                                                                                                %
+                                                                                                            </td>
+                                                                                                            <td className="py-2 px-3 text-right font-bold text-primary">
+                                                                                                                {formatCurrency(
+                                                                                                                    bracket.tax_applied,
+                                                                                                                )}
+                                                                                                            </td>
+                                                                                                        </tr>
+                                                                                                    ),
+                                                                                                )}
+                                                                                            </tbody>
+                                                                                        </table>
+                                                                                    </div>
                                                                                 </div>
                                                                             )}
                                                                     </div>

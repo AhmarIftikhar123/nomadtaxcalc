@@ -68,7 +68,7 @@ export default function TaxCalculatorLayout({
                 />
 
                 {/* Page Content */}
-                <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+                <main className="flex-1 p-2 md:p-8 overflow-y-auto">
                     {children}
                 </main>
 

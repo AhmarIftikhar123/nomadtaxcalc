@@ -4,6 +4,7 @@ namespace App\Services\TaxCalculator;
 
 use App\Models\Country;
 use App\Models\UserCalculationCountry;
+use Illuminate\Support\Facades\Log;
 
 class ResidencyDeterminationService
 {
@@ -13,14 +14,14 @@ class ResidencyDeterminationService
     public function determine(array $visitedCountries): array
     {
         $results = [];
-        // dd($visitedCountries);
+
         foreach ($visitedCountries as $visit) {
             $country = Country::find($visit['country_id']);
             if (!$country) {
                 continue;
             }
-            
-            $daysSpent = $visit['days'];
+            // Log::info($visit);
+            $daysSpent = isset($visit['days']) ? $visit['days'] :  $visit['days_spent'];
             $threshold = $country->tax_residency_days;
 
             // Apply arrival/departure day rules
@@ -37,7 +38,7 @@ class ResidencyDeterminationService
             $results[] = [
                 'country_id' => $country->id,
                 'country_name' => $country->name,
-                'days_spent' => $visit['days'],
+                'days_spent' => isset($visit['days']) ? (int) $visit['days'] : (int) $visit['days_spent'],
                 'threshold' => $threshold,
                 'is_tax_resident' => $isResident,
                 'reason' => $this->getResidencyReason($daysSpent, $threshold, $isResident),

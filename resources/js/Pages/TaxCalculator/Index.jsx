@@ -43,6 +43,14 @@ export default function TaxCalculatorIndex({
     editingCalculationId,
 }) {
     const { auth, flash } = usePage().props;
+
+    // Detect ?scenario_comparison=true || ?scenario_comparison=1 in the URL
+    const isScenarioComparisonMode = useMemo(() => {
+        if (typeof window === "undefined") return false;
+        const params = new URLSearchParams(window.location.search);
+        return params.get("scenario_comparison") === "true";
+    }, []);
+
     // ─── Step State ──────────────────────────────────────────────
     const [step, setStep] = useState(initialStep || 1);
     const [result, setResult] = useState(initialResult || null);
@@ -163,9 +171,13 @@ export default function TaxCalculatorIndex({
         post(route("tax-calculator.step-1"), {
             preserveState: true,
             preserveScroll: true,
-            onSuccess: (page) => {
-                // Server saved step 1, advance to step 2
-                setStep(2);
+            onSuccess: () => {
+                if (isScenarioComparisonMode) {
+                    // Redirect to the compare page — session data is already saved
+                    router.visit(route("tax-calculator.compare"));
+                } else {
+                    setStep(2);
+                }
             },
         });
     };
@@ -258,51 +270,55 @@ export default function TaxCalculatorIndex({
             onRecalculate={step === 3 ? handleRecalculate : undefined}
         >
             <div
-                className={`mx-auto px-6 md:px-8 py-12 ${step === 3 ? "max-w-6xl" : step === 2 ? "max-w-4xl" : "max-w-[1200px]"}`}
+                className={`mx-auto px-2 sm:px-6 md:px-8 py-6 md:py-12 ${step === 3 ? "max-w-6xl" : step === 2 ? "max-w-4xl" : "max-w-[1200px]"}`}
             >
                 {/* ─── Progress Section ──────────────────────── */}
-                <div className="mb-12 flex justify-between items-end">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-4 mb-2">
-                            {step > 1 && (
-                                <button
-                                    type="button"
-                                    onClick={handleBack}
-                                    className="p-2 -ml-2 rounded-lg border border-border-gray hover:bg-primary hover:text-light text-primary transition-colors duration-200"
-                                    aria-label="Go to previous step"
-                                >
-                                    <ArrowLeft className="w-6 h-6" />
-                                </button>
-                            )}
-                            <h1 className="text-4xl md:text-5xl font-bold text-primary">
-                                {current.title}
-                            </h1>
+                {!isScenarioComparisonMode && (
+                    <div className="mb-12 flex flex-col md:flex-row md:justify-between md:items-end items-start">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-4 mb-2">
+                                {step > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={handleBack}
+                                        className="p-2 -ml-2 rounded-lg border border-border-gray hover:bg-primary hover:text-light text-primary transition-colors duration-200"
+                                        aria-label="Go to previous step"
+                                    >
+                                        <ArrowLeft className="w-6 h-6" />
+                                    </button>
+                                )}
+                                <h1 className="text-4xl md:text-5xl font-bold text-primary">
+                                    {current.title}
+                                </h1>
+                            </div>
+                            <p className="text-lg text-gray">
+                                {current.subtitle}
+                            </p>
                         </div>
-                        <p className="text-lg text-gray">{current.subtitle}</p>
-                    </div>
-                    <div className="text-right w-48">
-                        <p className="text-sm font-bold text-primary mb-2">
-                            {current.progress}% Completed
-                        </p>
-                        <div className="w-full h-1.5 bg-border-gray rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-primary transition-all duration-500"
-                                style={{ width: `${current.progress}%` }}
-                            ></div>
+                        <div className="text-right w-full md:w-48 mt-4 md:mt-0">
+                            <p className="text-sm font-bold text-primary mb-2">
+                                {current.progress}% Completed
+                            </p>
+                            <div className="w-full h-1.5 bg-border-gray rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-primary transition-all duration-500"
+                                    style={{ width: `${current.progress}%` }}
+                                ></div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* ═══════════════ STEP 1 ═══════════════ */}
                 {step === 1 && (
-                    <div className="bg-white rounded-xl border border-border-gray p-8 md:p-12 shadow-sm">
+                    <div className="bg-white rounded-xl border border-border-gray p-5 sm:p-8 md:p-12 shadow-sm">
                         <h2 className="text-4xl md:text-5xl font-bold text-primary mb-4">
                             Let's start with the basics
                         </h2>
                         <p className="text-lg text-gray mb-10">
-                            To accurately estimate your tax liability, we need
-                            to know your annual earnings and your primary
-                            country of citizenship.
+                            {isScenarioComparisonMode
+                                ? "Enter your income and citizenship — then we'll build your comparison scenarios."
+                                : "To accurately estimate your tax liability, we need to know your annual earnings and your primary country of citizenship."}
                         </p>
 
                         <form onSubmit={handleStep1Submit}>
@@ -315,6 +331,9 @@ export default function TaxCalculatorIndex({
                                 currencies={currencies}
                                 availableYears={availableYears}
                                 processing={processing}
+                                isScenarioComparisonMode={
+                                    isScenarioComparisonMode
+                                }
                             />
                         </form>
                     </div>
@@ -334,7 +353,7 @@ export default function TaxCalculatorIndex({
                         />
 
                         {/* Step2 Form Card */}
-                        <div className="bg-white rounded-xl border border-border-gray p-8 md:p-12 shadow-sm">
+                        <div className="bg-white rounded-xl border border-border-gray p-1 sm:p-8 md:p-12 shadow-sm">
                             <Step2Form
                                 data={data}
                                 setData={setData}

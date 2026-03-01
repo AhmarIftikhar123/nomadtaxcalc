@@ -70,7 +70,7 @@ export default function Select({
                             <div className="relative">
                                 {/* Input Field */}
                                 <ComboboxInput
-                                    className={`relative w-full cursor-pointer bg-white py-3 px-4 pr-20 text-left border rounded-lg text-base font-sans focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 ${
+                                    className={`relative w-full cursor-pointer bg-white py-3 px-4 pr-2 text-left border rounded-lg text-base font-sans focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 ${
                                         error
                                             ? "border-red-500"
                                             : open

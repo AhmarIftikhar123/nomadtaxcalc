@@ -10,7 +10,6 @@ import {
     ChevronLeft,
 } from "lucide-react";
 import ResidencyPeriodItem from "./ResidencyPeriodItem";
-import InputError from "@/Components/InputError";
 import Select from "@/Components/Form/Select";
 import Loader from "@/Components/ui/Loader";
 

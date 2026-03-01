@@ -50,7 +50,7 @@ export default function DetailedTaxBreakdown({
     };
 
     return (
-        <div className="bg-white rounded-xl border border-border-gray p-6 md:p-8 shadow-sm">
+        <div className="bg-white rounded-xl border border-border-gray p-4 sm:p-6 md:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h3 className="text-2xl font-bold text-primary">
@@ -59,7 +59,7 @@ export default function DetailedTaxBreakdown({
                 </div>
                 <button
                     onClick={handleDownloadCSV}
-                    className="flex items-center gap-2 px-4 py-2 text-primary font-semibold border-2 border-primary rounded-lg hover:bg-primary hover:text-light transition-colors"
+                    className="flex items-center gap-2 px-2 md:px-4 py-2 text-primary font-semibold border-2 border-primary rounded-lg hover:bg-primary hover:text-light transition-colors"
                 >
                     <Download className="w-4 h-4" />
                     Download CSV
@@ -94,7 +94,7 @@ export default function DetailedTaxBreakdown({
                         {breakdownData.map((item, index) => (
                             <tr
                                 key={index}
-                                className="border-b border-border-gray hover:bg-light transition-colors"
+                                className="border-b border-border-gray hover:bg-light transition-colors whitespace-nowrap"
                             >
                                 <td className="py-4 px-4">
                                     <div className="flex items-center gap-3">
@@ -124,7 +124,7 @@ export default function DetailedTaxBreakdown({
                         ))}
                     </tbody>
                     <tfoot>
-                        <tr className="bg-light border-t-2 border-primary">
+                        <tr className="bg-light border-t-2 border-primary whitespace-nowrap">
                             <td
                                 colSpan="5"
                                 className="py-4 px-4 font-bold text-primary text-right"

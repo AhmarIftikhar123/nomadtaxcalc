@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\LandingPage;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ContactRequest;
+use App\Services\Contact\ContactService;
 use Inertia\Inertia;
 
 class LandingPageController extends Controller
@@ -20,6 +22,45 @@ class LandingPageController extends Controller
         ];
 
         return Inertia::render('Landing/Index', $landingData);
+    }
+
+    /**
+     * Display the Privacy Policy page (public, no auth required)
+     */
+    public function privacyPolicy()
+    {
+        return Inertia::render(
+            'PrivacyPolicy/Index',
+            ['mailConfig' => [
+                'from' => config('mail.from.address'),
+            ]]
+        );
+    }
+
+    /**
+     * Display the About page.
+     */
+    public function about()
+    {
+        return Inertia::render('About/Index');
+    }
+
+    /**
+     * Display the Contact page.
+     */
+    public function contact()
+    {
+        return Inertia::render('Contact/Index');
+    }
+
+    /**
+     * Handle the contact form submission.
+     */
+    public function submitContact(ContactRequest $request, ContactService $service)
+    {
+        $service->handleSubmission($request->validated(), $request);
+
+        return back()->with('success', 'Your message has been sent successfully. We will get back to you soon.');
     }
 
     /**

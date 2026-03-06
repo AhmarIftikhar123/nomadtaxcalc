@@ -23,34 +23,37 @@ export default function Header() {
                 {/* Desktop Navigation */}
                 <nav className="hidden md:flex items-center gap-2 lg:gap-8">
                     <Link
-                        href="#features"
+                        href={route("home")}
                         className="text-sm font-semibold text-primary hover:text-gray transition-colors"
                     >
-                        Features
+                        Calculator
                     </Link>
                     <Link
-                        href="#how-it-works"
+                        href={route("about")}
                         className="text-sm font-semibold text-primary hover:text-gray transition-colors"
                     >
-                        How It Works
+                        About
                     </Link>
                     <Link
-                        href="#destinations"
+                        href="#"
                         className="text-sm font-semibold text-primary hover:text-gray transition-colors"
                     >
-                        Destinations
+                        Resources
                     </Link>
                     <Link
-                        href="#testimonials"
+                        href={route("contact")}
                         className="text-sm font-semibold text-primary hover:text-gray transition-colors"
                     >
-                        Testimonials
+                        Contact
                     </Link>
                 </nav>
 
                 {/* CTA Buttons */}
                 <div className="flex items-center gap-4">
-                    <Link href={route('tax-calculator.index')} className="flex min-w-[120px] cursor-pointer items-center justify-center rounded-xl h-10 px-5 bg-primary text-white text-sm font-bold tracking-tight hover:bg-primary/90 transition-all">
+                    <Link
+                        href={route("tax-calculator.index")}
+                        className="flex min-w-[120px] cursor-pointer items-center justify-center rounded-xl h-10 px-5 bg-primary text-white text-sm font-bold tracking-tight hover:bg-primary/90 transition-all"
+                    >
                         Try Calculator
                     </Link>
                 </div>
@@ -80,28 +83,32 @@ export default function Header() {
             {isMenuOpen && (
                 <nav className="md:hidden mt-4 flex flex-col gap-4 border-t border-structure pt-4">
                     <Link
-                        href="#features"
+                        href={route("home")}
                         className="text-sm font-semibold text-text-DEFAULT hover:text-text-subtle transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
                     >
-                        Features
+                        Calculator
                     </Link>
                     <Link
-                        href="#how-it-works"
+                        href={route("about")}
                         className="text-sm font-semibold text-text-DEFAULT hover:text-text-subtle transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
                     >
-                        How It Works
+                        About
                     </Link>
                     <Link
-                        href="#destinations"
+                        href="#"
                         className="text-sm font-semibold text-text-DEFAULT hover:text-text-subtle transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
                     >
-                        Destinations
+                        Resources
                     </Link>
                     <Link
-                        href="#testimonials"
+                        href={route("contact")}
                         className="text-sm font-semibold text-text-DEFAULT hover:text-text-subtle transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
                     >
-                        Testimonials
+                        Contact
                     </Link>
                 </nav>
             )}

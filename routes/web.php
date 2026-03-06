@@ -18,6 +18,13 @@ require __DIR__ . '/auth.php';
 Route::middleware('throttle:20,1')->group(function () {
     // {-------------- < Public Routes > -----------------}
     Route::get('/', [LandingPageController::class, 'index'])->name('home');
+    
+    Route::get('/about', [LandingPageController::class, 'about'])->name('about');
+    Route::get('/contact', [LandingPageController::class, 'contact'])->name('contact');
+    Route::post('/contact', [LandingPageController::class, 'submitContact'])->name('contact.submit');
+    
+    Route::get('/privacy-policy', [LandingPageController::class, 'privacyPolicy'])->name('privacy-policy');
+
 
     // Tax Calculator Routes (public — no auth required)
     Route::prefix('tax-calculator')->group(function () {

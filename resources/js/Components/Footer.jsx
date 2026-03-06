@@ -1,6 +1,6 @@
 import React from "react";
 import Logo from "@/assets/images/logos/logo-desktop.png";
-import { useForm } from "@inertiajs/react";
+import { useForm, Link } from "@inertiajs/react";
 
 export default function Footer() {
     const AppName = import.meta.env.VITE_APP_NAME;
@@ -191,19 +191,28 @@ export default function Footer() {
                         </h4>
                         <ul className="space-y-4 text-gray-400 text-sm">
                             <li>
-                                <a className="hover:text-white" href="#">
+                                <Link
+                                    className="hover:text-white"
+                                    href={route("about")}
+                                >
                                     About Us
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a className="hover:text-white" href="#">
-                                    Careers
-                                </a>
+                                <Link
+                                    className="hover:text-white"
+                                    href={route("contact")}
+                                >
+                                    Contact
+                                </Link>
                             </li>
                             <li>
-                                <a className="hover:text-white" href="#">
+                                <Link
+                                    className="hover:text-white"
+                                    href={route("privacy-policy")}
+                                >
                                     Privacy Policy
-                                </a>
+                                </Link>
                             </li>
                             <li>
                                 <a className="hover:text-white" href="#">

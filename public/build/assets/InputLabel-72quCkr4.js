@@ -1,1 +1,0 @@
-import{j as s}from"./app-DMve7b0K.js";function o({value:t,className:e="",children:r,...m}){return s.jsx("label",{...m,className:"block text-sm font-medium text-primary "+e,children:t||r})}export{o as I};

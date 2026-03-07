@@ -5,11 +5,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingPage\LandingPageController;
 use App\Http\Controllers\Newsletter\NewsletterController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Student\StudentController;
 use App\Http\Controllers\TaxCalculator\SavedCalculationController;
 use App\Http\Controllers\TaxCalculator\ScenarioComparisonController;
 use App\Http\Controllers\TaxCalculator\TaxCalculatorController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -18,11 +16,11 @@ require __DIR__ . '/auth.php';
 Route::middleware('throttle:20,1')->group(function () {
     // {-------------- < Public Routes > -----------------}
     Route::get('/', [LandingPageController::class, 'index'])->name('home');
-    
+
     Route::get('/about', [LandingPageController::class, 'about'])->name('about');
     Route::get('/contact', [LandingPageController::class, 'contact'])->name('contact');
     Route::post('/contact', [LandingPageController::class, 'submitContact'])->name('contact.submit');
-    
+
     Route::get('/privacy-policy', [LandingPageController::class, 'privacyPolicy'])->name('privacy-policy');
 
 

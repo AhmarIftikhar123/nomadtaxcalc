@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\State;
 use App\Models\TaxBracket;
 use App\Models\TaxType;
+use App\Services\SeoService;
 use App\Services\TaxCalculator\ScenarioComparisonService;
 use App\Services\TaxCalculator\TaxCalculatorService;
 use Illuminate\Http\JsonResponse;
@@ -26,9 +27,12 @@ class ScenarioComparisonController extends Controller
      */
     public function index()
     {
-        if (!session('tax_calc_step1')) {
-            return redirect()->route('tax-calculator.index', ['scenario_comparison' => 'true']);
-        }
+        $seo = (new SeoService())->set([
+            'title'       => 'Compare Tax Rates by Country — Digital Nomad Tax Comparison',
+            'description' => 'Side-by-side tax comparison for digital nomads. Compare income tax, social security, and effective tax rates across multiple countries instantly.',
+            'canonical'   => url('/tax-calculator/compare'),
+        ])->get();
+
         $countries      = $this->taxCalculatorService->getCountries();
         $currencies     = $this->taxCalculatorService->getCurrencies();
         $availableYears = TaxBracket::select('tax_year')
@@ -41,6 +45,7 @@ class ScenarioComparisonController extends Controller
         $states   = State::active()->select('id', 'country_id', 'name', 'code')->orderBy('name')->get();
 
         return Inertia::render('TaxCalculator/Compare', [
+            'seo'            => $seo,
             'countries'      => $countries,
             'states'         => $states,
             'currencies'     => $currencies,

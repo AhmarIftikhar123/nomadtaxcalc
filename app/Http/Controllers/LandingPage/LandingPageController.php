@@ -5,6 +5,7 @@ namespace App\Http\Controllers\LandingPage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ContactRequest;
 use App\Services\Contact\ContactService;
+use App\Services\SeoService;
 use Inertia\Inertia;
 
 class LandingPageController extends Controller
@@ -14,11 +15,31 @@ class LandingPageController extends Controller
      */
     public function index()
     {
+        $seo = (new SeoService())->set([
+            'title'       => 'Nomad Tax Calculator — Free Digital Nomad Tax Tool',
+            'description' => 'Free tax calculator for digital nomads. Calculate income tax, compare countries, and find the most tax-friendly destinations. No signup needed.',
+            'canonical'   => url('/'),
+            'og_image'    => asset('images/og-home.png'),
+            'schema'      => json_encode([
+                '@context'        => 'https://schema.org',
+                '@type'           => 'WebSite',
+                'name'            => 'NomadTaxCalc',
+                'url'             => url('/'),
+                'description'     => 'Free tax calculator for digital nomads',
+                'potentialAction' => [
+                    '@type'       => 'SearchAction',
+                    'target'      => url('/tax-calculator') . '?q={search_term_string}',
+                    'query-input' => 'required name=search_term_string',
+                ],
+            ]),
+        ])->get();
+
         $landingData = [
-            'features' => $this->getFeatures(),
+            'seo'          => $seo,
+            'features'     => $this->getFeatures(),
             'destinations' => $this->getPopularDestinations(),
             'testimonials' => $this->getTestimonials(),
-            'howItWorks' => $this->getHowItWorks(),
+            'howItWorks'   => $this->getHowItWorks(),
         ];
 
         return Inertia::render('Landing/Index', $landingData);
@@ -29,11 +50,20 @@ class LandingPageController extends Controller
      */
     public function privacyPolicy()
     {
+        $seo = (new SeoService())->set([
+            'title'       => 'Privacy Policy — NomadTaxCalc',
+            'description' => 'Read the NomadTaxCalc privacy policy. Learn how we handle your data, cookies, and advertising with Google AdSense.',
+            'canonical'   => url('/privacy-policy'),
+        ])->get();
+
         return Inertia::render(
             'PrivacyPolicy/Index',
-            ['mailConfig' => [
-                'from' => config('mail.from.address'),
-            ]]
+            [
+                'seo'        => $seo,
+                'mailConfig' => [
+                    'from' => config('mail.from.address'),
+                ],
+            ]
         );
     }
 
@@ -42,7 +72,25 @@ class LandingPageController extends Controller
      */
     public function about()
     {
-        return Inertia::render('About/Index');
+        $seo = (new SeoService())->set([
+            'title'       => 'About NomadTaxCalc — Who We Are & Our Mission',
+            'description' => 'NomadTaxCalc helps digital nomads calculate and compare taxes worldwide. Learn about our mission to simplify nomad taxation for freelancers and remote workers.',
+            'canonical'   => url('/about'),
+            'schema'      => json_encode([
+                '@context'     => 'https://schema.org',
+                '@type'        => 'Organization',
+                'name'         => 'NomadTaxCalc',
+                'url'          => url('/'),
+                'description'  => 'Free tax calculator for digital nomads and remote workers',
+                'contactPoint' => [
+                    '@type'       => 'ContactPoint',
+                    'contactType' => 'customer support',
+                    'url'         => url('/contact'),
+                ],
+            ]),
+        ])->get();
+
+        return Inertia::render('About/Index', compact('seo'));
     }
 
     /**
@@ -50,7 +98,13 @@ class LandingPageController extends Controller
      */
     public function contact()
     {
-        return Inertia::render('Contact/Index');
+        $seo = (new SeoService())->set([
+            'title'       => 'Contact NomadTaxCalc — Get In Touch',
+            'description' => 'Have a question about nomad taxes? Contact the NomadTaxCalc team. We respond within 24 hours.',
+            'canonical'   => url('/contact'),
+        ])->get();
+
+        return Inertia::render('Contact/Index', compact('seo'));
     }
 
     /**

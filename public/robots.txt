@@ -1,2 +1,19 @@
 User-agent: *
-Disallow:
+Allow: /
+Allow: /tax-calculator
+Allow: /tax-calculator/compare
+Allow: /about
+Allow: /contact
+Allow: /privacy-policy
+
+# Block auth, personal, and dynamic pages from crawlers
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /my-calculations
+Disallow: /tax-calculator/shared/
+Disallow: /newsletter/
+Disallow: /_ignition
+Disallow: /sanctum
+
+Sitemap: https://nomadtaxcalc.com/sitemap.xml

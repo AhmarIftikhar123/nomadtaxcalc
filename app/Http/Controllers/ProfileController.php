@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\SeoService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,9 +20,12 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $seo = (new SeoService())->noIndex()->get();
+
         return Inertia::render('Profile/Edit', [
+            'seo'             => $seo,
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
+            'status'          => session('status'),
         ]);
     }
 

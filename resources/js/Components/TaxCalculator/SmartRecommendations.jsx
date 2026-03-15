@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Link } from "@inertiajs/react";
 import {
     Zap,
     MessageSquare,
@@ -118,10 +119,10 @@ export default function SmartRecommendations({ recommendations, currency }) {
                                     )}
 
                                 <div className="flex gap-3">
-                                    <button className="flex-1 px-4 py-2 bg-primary text-light font-semibold rounded-lg hover:bg-dark transition-colors flex items-center justify-center gap-2">
+                                    <Link href={route("tax-calculator.index", { scenario_comparison: "true" })} className="flex-1 px-4 py-2 bg-primary text-light font-semibold rounded-lg hover:bg-dark transition-colors flex items-center justify-center gap-2">
                                         Compare Scenarios
                                         <ExternalLink className="w-4 h-4" />
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
                         )}

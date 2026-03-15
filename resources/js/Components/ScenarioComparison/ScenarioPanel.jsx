@@ -201,7 +201,7 @@ export default function ScenarioPanel({
                                                 ),
                                             )
                                         }
-                                        className="w-16 h-8 text-center text-sm font-bold text-primary border border-border-gray rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                        className="w-20 h-8 text-center text-sm font-bold text-primary border border-border-gray rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                     />
 
                                     <Tooltip

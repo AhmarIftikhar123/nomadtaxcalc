@@ -189,7 +189,7 @@ export default function Step2Form({
     return (
         <form onSubmit={handleSubmit} className="space-y-8">
             {/* Fiscal Year Timeline */}
-            <div className="bg-light rounded-xl border border-border-gray p-6 md:p-8">
+            <div data-tour="step2-intro" className="bg-light rounded-xl border border-border-gray p-6 md:p-8">
                 <h3 className="text-xl font-bold text-primary mb-2">
                     Fiscal Year {taxYear || 2026}
                 </h3>
@@ -241,7 +241,7 @@ export default function Step2Form({
             </div>
 
             {/* Add Residency Period */}
-            <div className="bg-light rounded-xl border border-border-gray p-6 md:p-8">
+            <div data-tour="step2-add-period" className="bg-light rounded-xl border border-border-gray p-6 md:p-8">
                 <h3 className="text-lg font-bold text-primary mb-6 uppercase text-sm tracking-wide">
                     Add Residency Period
                 </h3>

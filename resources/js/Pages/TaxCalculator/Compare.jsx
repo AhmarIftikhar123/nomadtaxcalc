@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo } from "react";
 import { Head, Link, usePage } from "@inertiajs/react";
+import Joyride, { STATUS } from "react-joyride";
+import { useCompareTour } from "@/hooks/useCompareTour";
 import TaxCalculatorLayout from "@/Layouts/TaxCalculatorLayout";
 import ScenarioPanel from "@/Components/ScenarioComparison/ScenarioPanel";
 import WinnerBanner from "@/Components/ScenarioComparison/WinnerBanner";
@@ -11,7 +13,7 @@ import ComparisonTable from "@/Components/ScenarioComparison/ComparisonTable";
 import ResidencyRiskComparison from "@/Components/ScenarioComparison/ResidencyRiskComparison";
 import SmartRecommendations from "@/Components/TaxCalculator/SmartRecommendations";
 import Tooltip from "@/Components/Ui/Tooltip";
-import { Zap, Loader2, Printer, ArrowLeft } from "lucide-react";
+import { Zap, Loader2, Printer, ArrowLeft, HelpCircle } from "lucide-react";
 import web from "@/libs/axios";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -45,6 +47,17 @@ export default function Compare({
     prefillPeriods = [],
 }) {
     const { auth } = usePage().props;
+
+    // ─── Onboarding Tour (Comparison) ─────────────────────────────
+    // isDefault: true if user hasn't set their actual profile data
+    const isDefaultData = !prefillStep1 || !prefillStep1.citizenship_country_id;
+    const { 
+        steps: tourSteps, 
+        tourActive, 
+        tourKey, 
+        startTour, 
+        handleTourCallback 
+    } = useCompareTour(isDefaultData);
 
     // ── Step 1 state (shared between both scenarios) ─────────────────────────
     const [step1, setStep1] = useState(() => {
@@ -195,29 +208,105 @@ export default function Compare({
         <TaxCalculatorLayout title="Compare Scenarios">
             <Head title="Compare Scenarios" />
 
+            {/* ─── React Joyride (Comparison) ────────────────── */}
+            <Joyride
+                key={tourKey}
+                steps={tourSteps}
+                run={tourActive}
+                continuous
+                scrollToFirstStep
+                showProgress
+                showSkipButton
+                callback={(data) => {
+                    if (
+                        data.status === STATUS.FINISHED ||
+                        data.status === STATUS.SKIPPED
+                    ) {
+                        handleTourCallback(data);
+                    }
+                }}
+                styles={{
+                    options: {
+                        primaryColor: "#1a1a2e",
+                        zIndex: 10000,
+                        arrowColor: "#fff",
+                        backgroundColor: "#fff",
+                        textColor: "#374151",
+                        overlayColor: "rgba(0,0,0,0.45)",
+                    },
+                    tooltip: {
+                        borderRadius: "12px",
+                        padding: "20px 24px",
+                        fontFamily: "inherit",
+                        fontSize: "14px",
+                        boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+                    },
+                    tooltipTitle: {
+                        fontSize: "15px",
+                        fontWeight: "700",
+                        marginBottom: "8px",
+                        color: "#1a1a2e",
+                    },
+                    buttonNext: {
+                        backgroundColor: "#1a1a2e",
+                        color: "#fff",
+                        borderRadius: "8px",
+                        padding: "8px 18px",
+                        fontWeight: "600",
+                        fontSize: "13px",
+                    },
+                    buttonBack: {
+                        color: "#6b7280",
+                        fontWeight: "600",
+                        fontSize: "13px",
+                    },
+                    buttonSkip: {
+                        color: "#9ca3af",
+                        fontSize: "12px",
+                    },
+                    buttonClose: {
+                        top: "12px",
+                        right: "12px",
+                    },
+                }}
+            />
+
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* ── Hero Header ─────────────────────────────────────────── */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex items-start gap-4">
-                        <Tooltip text="Back to Previous Step" position="bottom">
-                            <Link
-                                href={route("tax-calculator.index", {
-                                    scenario_comparison: "true",
-                                })}
-                                className="p-2 -ml-2 rounded-lg border border-border-gray hover:bg-primary hover:text-light text-primary transition-colors duration-200 mt-0.5"
-                                aria-label="Go to previous step"
-                            >
-                                <ArrowLeft className="w-6 h-6" />
-                            </Link>
-                        </Tooltip>
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-extrabold text-primary leading-tight">
-                                What if you travelled{" "}
-                                <span className="text-green-600">
-                                    differently
-                                </span>
-                                ?
-                            </h1>
+                        <div data-tour="compare-back" className="mt-0.5">
+                            <Tooltip text="Back to Previous Step" position="bottom">
+                                <Link
+                                    href={route("tax-calculator.index", {
+                                        scenario_comparison: "true",
+                                    })}
+                                    className="p-2 flex items-center justify-center rounded-lg border border-border-gray hover:bg-primary hover:text-light text-primary transition-colors duration-200"
+                                    aria-label="Go to previous step"
+                                >
+                                    <ArrowLeft className="w-6 h-6" />
+                                </Link>
+                            </Tooltip>
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <h1 className="text-2xl md:text-3xl font-extrabold text-primary leading-tight">
+                                    What if you travelled{" "}
+                                    <span className="text-green-600">
+                                        differently
+                                    </span>
+                                    ?
+                                </h1>
+                                {/* Tour trigger button */}
+                                <button
+                                    type="button"
+                                    onClick={startTour}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary border border-border-gray rounded-lg hover:bg-primary hover:text-light transition-colors duration-200"
+                                >
+                                    <HelpCircle className="w-4 h-4" />
+                                    Quick Tour
+                                </button>
+                            </div>
                             <p className="text-sm text-gray mt-1">
                                 Adjust days per country below — compare full tax
                                 results instantly.
@@ -279,6 +368,7 @@ export default function Compare({
                     {/* Desktop: side by side | Mobile: toggled */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         <div
+                            data-tour="scenario-a"
                             className={`${activeScenario !== "A" ? "hidden md:block" : ""}`}
                         >
                             <ScenarioPanel
@@ -293,6 +383,7 @@ export default function Compare({
                             />
                         </div>
                         <div
+                            data-tour="scenario-b"
                             className={`${activeScenario !== "B" ? "hidden md:block" : ""}`}
                         >
                             <ScenarioPanel
@@ -309,7 +400,10 @@ export default function Compare({
                     </div>
 
                     {/* Compare CTA */}
-                    <div className="bg-primary/5 border border-primary/10 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 mt-5">
+                    <div
+                        data-tour="compare-run"
+                        className="bg-primary/5 border border-primary/10 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 mt-5"
+                    >
                         <p className="text-sm text-primary/70 font-medium">
                             Adjust days above · click compare to see full tax
                             impact

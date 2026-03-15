@@ -78,6 +78,7 @@ export default function TaxTypeSelector({
             {/* Toggle Button */}
             <button
                 type="button"
+                data-tour="step2-tax-types"
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="w-full flex items-center justify-between px-4 py-3 bg-light border border-border-gray rounded-lg hover:bg-gray-50 transition-colors"
             >

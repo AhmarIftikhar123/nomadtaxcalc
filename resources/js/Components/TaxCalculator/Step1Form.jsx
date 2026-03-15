@@ -62,7 +62,7 @@ export default function Step1Form({
     return (
         <div className="space-y-8">
             {/* Annual Gross Income */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div data-tour="step1-income" className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
                     <label
                         htmlFor="annual_income"
@@ -103,7 +103,7 @@ export default function Step1Form({
                 </div>
 
                 {/* Tax Year */}
-                <div>
+                <div data-tour="step1-taxyear">
                     <Select
                         label="Tax Year"
                         value={String(data.tax_year)}
@@ -128,7 +128,7 @@ export default function Step1Form({
             )}
 
             {/* Country of Citizenship */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div data-tour="step1-citizenship" className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
                     <Select
                         label="Country of Citizenship"

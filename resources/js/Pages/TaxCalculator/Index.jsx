@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useForm, usePage, Link, router } from "@inertiajs/react";
+import Joyride, { STATUS } from "react-joyride";
+import { useTaxTour } from "@/hooks/useTaxTour";
 import {
     RotateCcw,
     Download,
@@ -11,6 +13,7 @@ import {
     TriangleAlert,
     Mail,
     Link2,
+    HelpCircle,
 } from "lucide-react";
 import FlashMessage from "@/Components/ui/FlashMessage";
 import TaxCalculatorLayout from "@/Layouts/TaxCalculatorLayout";
@@ -64,6 +67,8 @@ export default function TaxCalculatorIndex({
     const [shareExpiry, setShareExpiry] = useState(null);
     const [shareUrl, setShareUrl] = useState(null);
     const [showShareModal, setShowShareModal] = useState(false);
+
+
 
     // Track the saved DB record ID so subsequent saves UPDATE instead of INSERT.
     // Starts as editingCalculationId (set when user loads ?calculation_id=X),
@@ -124,6 +129,14 @@ export default function TaxCalculatorIndex({
                 ? savedResidencyPeriods
                 : [],
     });
+
+    // ─── Onboarding Tour ──────────────────────────────────────────
+    // Placed after useForm so `data` is available.
+    // hasPeriods gates the tax-types step — that DOM target only exists
+    // once a ResidencyPeriodItem card is rendered.
+    const hasPeriods = (data.residency_periods ?? []).length > 0;
+    const { steps: tourSteps, tourActive, tourKey, startTour, handleTourCallback } =
+        useTaxTour(step, hasPeriods);
 
     // ─── Resolve citizenship country info for Form1Summary ───────
     const citizenshipSummary = useMemo(() => {
@@ -269,6 +282,69 @@ export default function TaxCalculatorIndex({
             title={current.title}
             onRecalculate={step === 3 ? handleRecalculate : undefined}
         >
+            {/* ─── React Joyride ─────────────────────────────── */}
+            <Joyride
+                key={tourKey}
+                steps={tourSteps}
+                run={tourActive}
+                continuous
+                scrollToFirstStep
+                showProgress
+                showSkipButton
+                callback={(data) => {
+                    if (
+                        data.status === STATUS.FINISHED ||
+                        data.status === STATUS.SKIPPED
+                    ) {
+                        handleTourCallback(data);
+                    }
+                }}
+                styles={{
+                    options: {
+                        primaryColor: "#1a1a2e",
+                        zIndex: 10000,
+                        arrowColor: "#fff",
+                        backgroundColor: "#fff",
+                        textColor: "#374151",
+                        overlayColor: "rgba(0,0,0,0.45)",
+                    },
+                    tooltip: {
+                        borderRadius: "12px",
+                        padding: "20px 24px",
+                        fontFamily: "inherit",
+                        fontSize: "14px",
+                        boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+                    },
+                    tooltipTitle: {
+                        fontSize: "15px",
+                        fontWeight: "700",
+                        marginBottom: "8px",
+                        color: "#1a1a2e",
+                    },
+                    buttonNext: {
+                        backgroundColor: "#1a1a2e",
+                        color: "#fff",
+                        borderRadius: "8px",
+                        padding: "8px 18px",
+                        fontWeight: "600",
+                        fontSize: "13px",
+                    },
+                    buttonBack: {
+                        color: "#6b7280",
+                        fontWeight: "600",
+                        fontSize: "13px",
+                    },
+                    buttonSkip: {
+                        color: "#9ca3af",
+                        fontSize: "12px",
+                    },
+                    buttonClose: {
+                        top: "12px",
+                        right: "12px",
+                    },
+                }}
+            />
+
             <div
                 className={`mx-auto px-2 sm:px-6 md:px-8 py-6 md:py-12 ${step === 3 ? "max-w-6xl" : step === 2 ? "max-w-4xl" : "max-w-[1200px]"}`}
             >
@@ -295,15 +371,27 @@ export default function TaxCalculatorIndex({
                                 {current.subtitle}
                             </p>
                         </div>
-                        <div className="text-right w-full md:w-48 mt-4 md:mt-0">
-                            <p className="text-sm font-bold text-primary mb-2">
-                                {current.progress}% Completed
-                            </p>
-                            <div className="w-full h-1.5 bg-border-gray rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-primary transition-all duration-500"
-                                    style={{ width: `${current.progress}%` }}
-                                ></div>
+                        <div className="flex items-center gap-4 text-right w-full md:w-auto mt-4 md:mt-0">
+                            {/* Tour trigger button */}
+                            <button
+                                type="button"
+                                onClick={startTour}
+                                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary border border-border-gray rounded-lg hover:bg-primary hover:text-light transition-colors duration-200"
+                                title="Take a quick tour of this step"
+                            >
+                                <HelpCircle className="w-4 h-4" />
+                                Quick Tour
+                            </button>
+                            <div className="w-full md:w-48">
+                                <p className="text-sm font-bold text-primary mb-2">
+                                    {current.progress}% Completed
+                                </p>
+                                <div className="w-full h-1.5 bg-border-gray rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-primary transition-all duration-500"
+                                        style={{ width: `${current.progress}%` }}
+                                    ></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -408,7 +496,10 @@ export default function TaxCalculatorIndex({
                         {!calculationError && result && (
                             <>
                                 {/* Tabs Navigation */}
-                                <div className="flex overflow-x-auto overflow-y-hidden gap-2 mb-8 pb-2 border-b-2 border-border-gray no-scrollbar">
+                                <div
+                                    data-tour="step3-tabs"
+                                    className="flex overflow-x-auto overflow-y-hidden gap-2 mb-8 pb-2 border-b-2 border-border-gray no-scrollbar"
+                                >
                                     {tabs.map((tab) => (
                                         <button
                                             key={tab.id}
@@ -427,8 +518,12 @@ export default function TaxCalculatorIndex({
                                 {/* Tab Content: Summary */}
                                 {activeTab === "summary" && (
                                     <div className="space-y-6">
-                                        <ResultMetricsCards result={result} />
-                                        <TaxCalculationFlow result={result} />
+                                        <div data-tour="step3-metrics">
+                                            <ResultMetricsCards result={result} />
+                                        </div>
+                                        <div data-tour="step3-flow">
+                                            <TaxCalculationFlow result={result} />
+                                        </div>
                                     </div>
                                 )}
 
@@ -501,7 +596,10 @@ export default function TaxCalculatorIndex({
                                 )}
 
                                 {/* Action Buttons */}
-                                <div className="flex gap-4 justify-center flex-wrap mt-12 mb-6">
+                                <div
+                                    data-tour="step3-login-cta"
+                                    className="flex gap-4 justify-center flex-wrap mt-12 mb-6"
+                                >
                                     <button
                                         type="button"
                                         onClick={handleRecalculate}

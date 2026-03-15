@@ -86,7 +86,7 @@ export default function Tooltip({
                     role="tooltip"
                 >
                     {/* Tooltip Content */}
-                    <div className="relative bg-primary text-light px-3 py-2 rounded-lg text-sm font-medium max-w-sm md:max-w-md whitespace-normal shadow-lg text-center">
+                    <div className="relative bg-primary text-light px-4 py-2 rounded-lg text-sm font-medium w-max max-w-[200px] sm:max-w-[300px] md:max-w-sm whitespace-normal shadow-xl text-center leading-relaxed">
                         {text}
                         
                         {/* Arrow */}

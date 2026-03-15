@@ -147,7 +147,7 @@ export default function TopBar({
                         /* Guest User Section */
                         <Tooltip
                             text="Login to save calculations, create public shareable links, email yourself results, and access many more features."
-                            position="bottom"
+                            position="left"
                         >
                             <Link
                                 href={route("login")}

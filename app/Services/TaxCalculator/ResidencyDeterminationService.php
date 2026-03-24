@@ -51,6 +51,9 @@ class ResidencyDeterminationService
             $threshold = (int) $country->tax_residency_days;
 
             // ── Adjusted days for arrival/departure counting rules ────────
+            // Stored for transparency/display only — NOT used for the
+            // resident determination. The user enters their total physical
+            // presence days which already represent the real count.
             $adjustedDays = $rawDays;
             if (! $country->counts_arrival_day)   $adjustedDays -= 1;
             if (! $country->counts_departure_day) $adjustedDays -= 1;
@@ -71,8 +74,9 @@ class ResidencyDeterminationService
                 $isResident = true;
                 $reason     = $this->getCitizenshipResidencyReason($rawDays, $threshold, $country->name);
             } else {
-                // Standard day-threshold residency
-                $isResident = $adjustedDays >= $threshold;
+                // Standard day-threshold residency — compare raw physical
+                // presence days against the country's threshold (>= means resident).
+                $isResident = $rawDays >= $threshold;
                 $reason     = $this->getResidencyReason($adjustedDays, $threshold, $isResident);
             }
 
@@ -161,7 +165,7 @@ class ResidencyDeterminationService
     {
         if ($isResident) {
             $over = $adjustedDays - $threshold;
-            return "Spent {$adjustedDays} days, exceeding the {$threshold}-day threshold by {$over} days.";
+            return "Spent {$adjustedDays} days, exceeding the {$threshold} day threshold by {$over} days.";
         }
 
         $remaining = $threshold - $adjustedDays;

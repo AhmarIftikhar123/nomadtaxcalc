@@ -120,7 +120,11 @@ class TaxCalculatorController extends Controller
     // Clear any previous step 2 / result when step 1 is re-submitted
     session()->forget(['tax_calc_step2', 'tax_calc_result']);
 
-    return redirect()->route('tax-calculator.index');
+    return redirect()->route(
+      $request->boolean('scenario_comparison') == 1
+        ? 'tax-calculator.compare'
+        : 'tax-calculator.index'
+    );
   }
 
   /**

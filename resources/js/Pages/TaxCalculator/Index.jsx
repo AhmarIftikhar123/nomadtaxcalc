@@ -68,8 +68,6 @@ export default function TaxCalculatorIndex({
     const [shareUrl, setShareUrl] = useState(null);
     const [showShareModal, setShowShareModal] = useState(false);
 
-
-
     // Track the saved DB record ID so subsequent saves UPDATE instead of INSERT.
     // Starts as editingCalculationId (set when user loads ?calculation_id=X),
     // then updates from flash.saved_calculation_id after every successful save.
@@ -135,8 +133,13 @@ export default function TaxCalculatorIndex({
     // hasPeriods gates the tax-types step — that DOM target only exists
     // once a ResidencyPeriodItem card is rendered.
     const hasPeriods = (data.residency_periods ?? []).length > 0;
-    const { steps: tourSteps, tourActive, tourKey, startTour, handleTourCallback } =
-        useTaxTour(step, hasPeriods);
+    const {
+        steps: tourSteps,
+        tourActive,
+        tourKey,
+        startTour,
+        handleTourCallback,
+    } = useTaxTour(step, hasPeriods);
 
     // ─── Resolve citizenship country info for Form1Summary ───────
     const citizenshipSummary = useMemo(() => {
@@ -181,18 +184,23 @@ export default function TaxCalculatorIndex({
     // ─── Step 1 Submit ───────────────────────────────────────────
     const handleStep1Submit = (e) => {
         e.preventDefault();
-        post(route("tax-calculator.step-1"), {
-            preserveState: true,
-            preserveScroll: true,
-            onSuccess: () => {
-                if (isScenarioComparisonMode) {
-                    // Redirect to the compare page — session data is already saved
-                    router.visit(route("tax-calculator.compare"));
-                } else {
-                    setStep(2);
-                }
+        post(
+            route("tax-calculator.step-1", {
+                scenario_comparison: isScenarioComparisonMode,
+            }),
+            {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    if (isScenarioComparisonMode) {
+                        // Redirect to the compare page — session data is already saved
+                        router.visit(route("tax-calculator.compare"));
+                    } else {
+                        setStep(2);
+                    }
+                },
             },
-        });
+        );
     };
 
     // ─── Step 2 Submit ───────────────────────────────────────────
@@ -391,7 +399,9 @@ export default function TaxCalculatorIndex({
                                 <div className="w-full h-1.5 bg-border-gray rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-primary transition-all duration-500"
-                                        style={{ width: `${current.progress}%` }}
+                                        style={{
+                                            width: `${current.progress}%`,
+                                        }}
                                     ></div>
                                 </div>
                             </div>
@@ -521,10 +531,14 @@ export default function TaxCalculatorIndex({
                                 {activeTab === "summary" && (
                                     <div className="space-y-6">
                                         <div data-tour="step3-metrics">
-                                            <ResultMetricsCards result={result} />
+                                            <ResultMetricsCards
+                                                result={result}
+                                            />
                                         </div>
                                         <div data-tour="step3-flow">
-                                            <TaxCalculationFlow result={result} />
+                                            <TaxCalculationFlow
+                                                result={result}
+                                            />
                                         </div>
                                     </div>
                                 )}

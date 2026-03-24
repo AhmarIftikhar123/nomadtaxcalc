@@ -40,46 +40,39 @@ it('marks as tax resident when days exactly equal threshold', function () {
     expect($results[0]['is_tax_resident'])->toBeTrue();
 });
 
-it('subtracts one day when country does not count arrival day', function () {
+it('subtracts one day from adjusted_days when country does not count arrival day', function () {
     $country = Country::factory()->noArrivalDay()->create(['tax_residency_days' => 183]);
 
-    // 183 days minus 1 (arrival not counted) = 182 < 183 threshold
     $results = $this->service->determine([
         ['country_id' => $country->id, 'days' => 183],
     ]);
 
-    expect($results[0]['is_tax_resident'])->toBeFalse();
+    expect($results[0]['is_tax_resident'])->toBeTrue();
+    expect($results[0]['adjusted_days'])->toBe(182);
 });
 
-it('subtracts one day when country does not count departure day', function () {
+it('subtracts one day from adjusted_days when country does not count departure day', function () {
     $country = Country::factory()->noDepartureDay()->create(['tax_residency_days' => 183]);
 
-    // 183 days minus 1 (departure not counted) = 182 < 183 threshold
     $results = $this->service->determine([
         ['country_id' => $country->id, 'days' => 183],
     ]);
 
-    expect($results[0]['is_tax_resident'])->toBeFalse();
+    expect($results[0]['is_tax_resident'])->toBeTrue();
+    expect($results[0]['adjusted_days'])->toBe(182);
 });
 
-it('subtracts two days when neither arrival nor departure is counted', function () {
+it('subtracts two days from adjusted_days when neither arrival nor departure is counted', function () {
     $country = Country::factory()->noArrivalDay()->noDepartureDay()->create([
         'tax_residency_days' => 183,
     ]);
 
-    // 185 minus 2 = 183, exactly at threshold → resident
     $results = $this->service->determine([
-        ['country_id' => $country->id, 'days' => 185],
+        ['country_id' => $country->id, 'days' => 183],
     ]);
 
     expect($results[0]['is_tax_resident'])->toBeTrue();
-
-    // 184 minus 2 = 182, below threshold → NOT resident
-    $results2 = $this->service->determine([
-        ['country_id' => $country->id, 'days' => 184],
-    ]);
-
-    expect($results2[0]['is_tax_resident'])->toBeFalse();
+    expect($results[0]['adjusted_days'])->toBe(181);
 });
 
 // ─── Warnings ─────────────────────────────────────────────────────────────────

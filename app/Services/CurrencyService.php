@@ -28,32 +28,43 @@ class CurrencyService
      */
     public function getAvailableCurrencies(): array
     {
-        return Cache::remember('currency.list', now()->addMinutes($this->ttl), function () {
-            try {
-                $response = Http::timeout(10)->get("{$this->apiUrl}/currencies");
+        $cacheKey = 'currency.list';
 
-                if (!$response->successful()) {
-                    return [];
-                }
+        // If cache exists, return it
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
 
-                $data = $response->json(); // ['EUR' => 'Euro', 'USD' => 'US Dollar', ...]
-
-                $availableCurrencies = collect($data)
-                    ->map(fn($name, $code) => [
-                        'value' => $code,
-                        'label' => "{$code} — {$name}",
-                    ])
-                    ->values()
-                    ->toArray();
-                        
-                return $availableCurrencies;
-            } catch (\Throwable $e) {
-                Log::warning('CurrencyService::getAvailableCurrencies failed', [
-                    'error' => $e->getMessage(),
-                ]);
-                return [];
+        try {
+            $response = Http::timeout(10)->get("{$this->apiUrl}/currencies");
+            // Log::info($response);
+            if (!$response->successful()) {
+                return []; //  don't cache
             }
-        });
+
+            $data = $response->json();
+
+            $availableCurrencies = collect($data)
+                ->map(fn($name, $code) => [
+                    'value' => $code,
+                    'label' => "{$code} — {$name}",
+                ])
+                ->values()
+                ->toArray();
+
+            //  ONLY cache valid data
+            if (!empty($availableCurrencies)) {
+                Cache::put($cacheKey, $availableCurrencies, now()->addMinutes($this->ttl));
+            }
+
+            return $availableCurrencies;
+        } catch (\Throwable $e) {
+            Log::warning('CurrencyService::getAvailableCurrencies failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return []; // Don't cache
+        }
     }
 
     /**
@@ -97,7 +108,6 @@ class CurrencyService
 
                 $rates = $response->json('rates', []);
                 return isset($rates[$to]) ? (float) $rates[$to] : 1.0;
-
             } catch (\Throwable $e) {
                 Log::warning("CurrencyService::getRate({$from}->{$to}) failed", [
                     'error' => $e->getMessage(),

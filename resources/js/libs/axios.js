@@ -2,12 +2,12 @@ import axios from "axios";
 import { router } from "@inertiajs/react";
 
 const web = axios.create({
-    baseURL: "/inertia/public",
+    baseURL: import.meta.env.VITE_API_BASE_URL,
     withCredentials: true, // session + CSRF
     headers: {
         "X-Requested-With": "XMLHttpRequest",
         Accept: "application/json",
-    },
+    },  
     timeout: 15000,
 });
 

@@ -4,22 +4,37 @@ namespace App\Services\TaxCalculator;
 
 use App\Models\TaxTreaty;
 use App\Models\Country;
-use Illuminate\Support\Facades\Log;
 
+/**
+ * Apply tax treaty rules between countries to prevent double taxation.
+ *
+ * Supports credit, exemption, and partial treaty methods, plus the
+ * US-specific Foreign Tax Credit (FTC) mechanism.
+ */
 class TreatyResolutionService
 {
     /**
-     * Apply treaty rules to prevent double taxation
+     * Apply treaty rules to prevent double taxation.
+     *
+     * Scans for applicable treaties between the citizenship country
+     * and each residence country. Applies the appropriate relief method
+     * and handles US FTC as a special case.
+     *
+     * @param  int    $citizenshipCountryId  User's citizenship country ID.
+     * @param  array  $taxResults            Per-country tax results.
+     * @param  int    $taxYear               Tax year for treaty lookup.
+     * @return array{adjustedResults: array, treatiesApplied: array}
      */
     public function applyTreaty(int $citizenshipCountryId, array $taxResults, int $taxYear = 2026): array
     {
-        $adjustedResults = [];
-        $treatiesApplied = [];
+        $adjustedResults       = [];
+        $treatiesApplied       = [];
         $totalForeignTaxCredit = 0;
+
         foreach ($taxResults as $result) {
             $residenceCountryId = $result['country_id'];
 
-            // Skip if same country as citizenship, process later for FTC
+            // Same country as citizenship — process later for FTC
             if ($residenceCountryId === $citizenshipCountryId) {
                 $adjustedResults[$residenceCountryId] = $result;
                 continue;
@@ -34,13 +49,7 @@ class TreatyResolutionService
                 )
                 ->orderByDesc('applicable_tax_year')
                 ->first();
-            // Add right after the TaxTreaty query
-            Log::info('Treaty lookup', [
-                'citizenship_id' => $citizenshipCountryId,
-                'residence_id'   => $residenceCountryId,
-                'tax_year'       => $taxYear,
-                'treaty_found'   => $treaty ? $treaty->treaty_type : 'NONE',
-            ]);
+
             // Skip 'exemption' treaty if user is tax resident (residents usually pay tax)
             if ($treaty && $treaty->treaty_type === 'exemption' && ($result['is_tax_resident'] ?? false)) {
                 $adjustedResults[$residenceCountryId] = $result;
@@ -49,29 +58,31 @@ class TreatyResolutionService
 
             if ($treaty) {
                 if ($treaty->treaty_type === 'credit' || $treaty->treaty_type === 'totalization') {
-                    // Foreign country taxes fully, home country gives credit
+                    // Foreign country taxes fully; home country gives credit later
                     $totalForeignTaxCredit += $result['tax_due'];
                     $adjustedResults[$residenceCountryId] = $result;
 
                     $treatiesApplied[] = [
-                        'countries' => [
+                        'countries'          => [
                             Country::find($citizenshipCountryId)->name,
                             Country::find($residenceCountryId)->name,
                         ],
-                        'type' => $treaty->treaty_type,
-                        'tax_saved' => 0, // Calculated later against home tax
+                        'type'               => $treaty->treaty_type,
+                        'tax_saved'          => 0,            // filled in below
+                        'foreign_tax_paid'   => $result['tax_due'], // ← NEW: always store this
                     ];
                 } else {
                     $adjusted = $this->applyTreatyLogic($result, $treaty);
                     $adjustedResults[$residenceCountryId] = $adjusted;
 
                     $treatiesApplied[] = [
-                        'countries' => [
+                        'countries'        => [
                             Country::find($citizenshipCountryId)->name,
                             Country::find($residenceCountryId)->name,
                         ],
-                        'type' => $treaty->treaty_type,
-                        'tax_saved' => $result['tax_due'] - $adjusted['tax_due'],
+                        'type'             => $treaty->treaty_type,
+                        'tax_saved'        => $result['tax_due'] - $adjusted['tax_due'],
+                        'foreign_tax_paid' => $result['tax_due'],
                     ];
                 }
             } else {
@@ -79,46 +90,62 @@ class TreatyResolutionService
             }
         }
 
-        // Apply Foreign Tax Credit (FTC) to Home Country
+        // ── Apply Foreign Tax Credit (FTC) to Home Country ──────────────────
+
         if ($totalForeignTaxCredit > 0 && isset($adjustedResults[$citizenshipCountryId])) {
-            $homeTax = $adjustedResults[$citizenshipCountryId]['tax_due'];
 
-            // True Foreign Tax Credit Logic: max(0, home_tax - foreign_tax_paid)
+            // HOME COUNTRY IS IN RESULTS (e.g. user spent some days in the US)
+            // True FTC: home tax reduced by foreign tax already paid
+            $homeTax    = $adjustedResults[$citizenshipCountryId]['tax_due'];
             $newHomeTax = max(0, $homeTax - $totalForeignTaxCredit);
-            $taxSaved = $homeTax - $newHomeTax;
+            $taxSaved   = $homeTax - $newHomeTax; // the real saving
 
-            // Find the credit treaties applied to update tax_saved
             foreach ($treatiesApplied as &$ta) {
                 if (in_array($ta['type'], ['credit', 'totalization'])) {
-                    $ta['tax_saved'] = $taxSaved; // Simplified attribution
+                    $ta['tax_saved'] = round($taxSaved, 2);
+                    $ta['note']      = 'Foreign Tax Credit applied — US tax reduced by foreign taxes paid';
                 }
             }
+            unset($ta);
 
-            $adjustedResults[$citizenshipCountryId]['tax_due'] = $newHomeTax;
-            if (($adjustedResults[$citizenshipCountryId]['allocated_income'] ?? 0) > 0) {
-                $adjustedResults[$citizenshipCountryId]['effective_rate'] = round(($newHomeTax / $adjustedResults[$citizenshipCountryId]['allocated_income']) * 100, 2);
-            }
+            $adjustedResults[$citizenshipCountryId]['tax_due']        = $newHomeTax;
             $adjustedResults[$citizenshipCountryId]['treaty_applied'] = 'Foreign Tax Credit Applied';
-        } elseif ($totalForeignTaxCredit > 0 && !isset($adjustedResults[$citizenshipCountryId])) {
-            // Home country not in breakdown (non-resident by days)
-            // FTC means foreign tax paid offsets what home country would charge
-            // Update all credit treaties to show the foreign tax paid as the saving
+           
+            $adjustedResults[$citizenshipCountryId]['ftc_applied']  = round($taxSaved, 2);
+            $adjustedResults[$citizenshipCountryId]['ftc_note']     =
+                'US tax reduced by $' . number_format($taxSaved, 2) .
+                ' via Foreign Tax Credit (Spain taxes paid)';
+            if (($adjustedResults[$citizenshipCountryId]['allocated_income'] ?? 0) > 0) {
+                $adjustedResults[$citizenshipCountryId]['effective_rate'] = round(
+                    ($newHomeTax / $adjustedResults[$citizenshipCountryId]['allocated_income']) * 100,
+                    2
+                );
+            }
+        } elseif ($totalForeignTaxCredit > 0 && ! isset($adjustedResults[$citizenshipCountryId])) {
+
+            // HOME COUNTRY NOT IN RESULTS (e.g. US citizen spent 0 days in the US)
+            // We have no calculated home-country tax to offset against,
+            // so tax_saved = 0 is the honest value.
+            // We store foreign_tax_paid so the frontend can display
+            // "Double Taxation Protected: $60,158" without calling it a "saving".
             foreach ($treatiesApplied as &$ta) {
                 if (in_array($ta['type'], ['credit', 'totalization'])) {
-                    $ta['tax_saved'] = $totalForeignTaxCredit;
-                    $ta['note'] = 'Foreign tax paid offsets home country liability';
+                    $ta['tax_saved']        = 0; // ← FIX: was $totalForeignTaxCredit (wrong)
+                    $ta['foreign_tax_paid'] = round($totalForeignTaxCredit, 2);
+                    $ta['note']             = 'Foreign taxes paid qualify as credit against any future US liability';
                 }
             }
+            unset($ta);
         }
 
         return [
-            'results' => array_values($adjustedResults),
+            'results'          => array_values($adjustedResults),
             'treaties_applied' => $treatiesApplied,
         ];
     }
 
     /**
-     * Apply specific treaty logic for non-credit treaties
+     * Apply specific treaty logic for non-credit treaties.
      */
     private function applyTreatyLogic(array $taxResult, TaxTreaty $treaty): array
     {
@@ -126,21 +153,21 @@ class TreatyResolutionService
 
         switch ($treaty->treaty_type) {
             case 'exemption':
-                // Full exemption
-                $adjusted['tax_due'] = 0;
+                $adjusted['tax_due']        = 0;
                 $adjusted['treaty_applied'] = 'Full Exemption';
                 break;
 
             case 'partial':
-                // Partial exemption
-                $adjusted['tax_due'] = $taxResult['tax_due'] * 0.5;
+                $adjusted['tax_due']        = $taxResult['tax_due'] * 0.5;
                 $adjusted['treaty_applied'] = 'Partial Exemption (50%)';
                 break;
         }
 
-        // Recalculate effective rate based on new tax_due
         if (isset($adjusted['allocated_income']) && $adjusted['allocated_income'] > 0) {
-            $adjusted['effective_rate'] = round(($adjusted['tax_due'] / $adjusted['allocated_income']) * 100, 2);
+            $adjusted['effective_rate'] = round(
+                ($adjusted['tax_due'] / $adjusted['allocated_income']) * 100,
+                2
+            );
         } else {
             $adjusted['effective_rate'] = 0;
         }

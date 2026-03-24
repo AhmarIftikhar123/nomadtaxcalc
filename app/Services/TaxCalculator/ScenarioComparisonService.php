@@ -4,6 +4,12 @@ namespace App\Services\TaxCalculator;
 
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * Compare two tax scenarios side-by-side.
+ *
+ * Runs both scenarios through the full calculation pipeline and builds
+ * a diff report highlighting per-country and aggregate differences.
+ */
 class ScenarioComparisonService
 {
     public function __construct(
@@ -11,10 +17,16 @@ class ScenarioComparisonService
     ) {}
 
     /**
-     * Compare two travel scenarios using the same Step 1 inputs.
+     * Run two scenarios and return comparison results.
      *
-     * Each scenario's result is cached individually so that
-     * re-comparing after changing only one scenario is fast.
+     * Caches individual scenario results to avoid redundant calculation.
+     * Builds a diff object containing per-country deltas and the overall
+     * winner (which scenario has lower total tax).
+     *
+     * @param  array  $step1      Normalised Step 1 data (shared between scenarios).
+     * @param  array  $periodsA   Residency periods for Scenario A.
+     * @param  array  $periodsB   Residency periods for Scenario B.
+     * @return array{resultA: array, resultB: array, diff: array}
      */
     public function compare(array $step1, array $periodsA, array $periodsB): array
     {

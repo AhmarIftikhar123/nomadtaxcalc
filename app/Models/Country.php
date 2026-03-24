@@ -20,6 +20,7 @@ class Country extends Model
         // Tax System
         'has_progressive_tax',
         'flat_tax_rate',
+        'standard_deduction',
         'taxes_worldwide_income',
         'tax_basis',
         // Digital Nomad
@@ -29,6 +30,7 @@ class Country extends Model
         'visa_income_period',
         // Residency Rules
         'tax_residency_days',
+        'worldwide_income_threshold',
         'counts_arrival_day',
         'counts_departure_day',
         'considers_center_of_vital_interests',
@@ -57,8 +59,10 @@ class Country extends Model
         'is_featured'                       => 'boolean',
         'is_active'                         => 'boolean',
         'flat_tax_rate'                     => 'decimal:2',
+        'standard_deduction'                => 'decimal:2',
         'min_income_for_visa'               => 'decimal:2',
         'avg_monthly_cost_of_living'        => 'decimal:2',
+        'worldwide_income_threshold'        => 'integer',
     ];
 
     /**
@@ -99,5 +103,21 @@ class Country extends Model
     public function calculationCountries()
     {
         return $this->hasMany(UserCalculationCountry::class);
+    }
+
+    /**
+     * Get deductions for this country
+     */
+    public function deductions()
+    {
+        return $this->hasMany(Deduction::class);
+    }
+
+    /**
+     * Get social security rules for this country
+     */
+    public function socialSecurityRules()
+    {
+        return $this->hasMany(SocialSecurityRule::class);
     }
 }

@@ -80,6 +80,7 @@ export default function Step2Form({
         data.residency_periods || [],
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const taxSelectorRefs = React.useRef({});
 
     // Filter countries (exclude already-added ones) and format for Select component
     const countryOptions = useMemo(() => {
@@ -118,7 +119,7 @@ export default function Step2Form({
         }
 
         // Find default income tax type
-        const incomeTaxType = taxTypes.find((t) => t.key === "");
+        const incomeTaxType = taxTypes.find((t) => t.key === "income_tax");
 
         const newPeriod = {
             id: Date.now(),
@@ -179,10 +180,21 @@ export default function Step2Form({
         if (!isYearComplete || isSubmitting || processing) {
             return;
         }
+
+        // Validate all custom tax selectors before proceeding
+        let customTaxesValid = true;
+        Object.values(taxSelectorRefs.current).forEach((ref) => {
+            if (ref && typeof ref.validate === 'function') {
+                if (!ref.validate()) {
+                    customTaxesValid = false;
+                }
+            }
+        });
+
+        if (!customTaxesValid) return;
+
         setIsSubmitting(true);
         onSubmit();
-
-        // Let processing prop take over after a tiny delay
         setTimeout(() => setIsSubmitting(false), 1000);
     };
 
@@ -362,6 +374,10 @@ export default function Step2Form({
                             isTaxResident={period.isTaxResident}
                             selectedTaxTypes={period.selected_tax_types}
                             availableTaxTypes={taxTypes}
+                            taxSelectorRef={(el) => {
+                                if (el) taxSelectorRefs.current[period.id] = el;
+                                else delete taxSelectorRefs.current[period.id];
+                            }}
                             onRemove={() => handleRemovePeriod(period.id)}
                             onUpdate={(field, value) =>
                                 handleUpdatePeriod(period.id, field, value)

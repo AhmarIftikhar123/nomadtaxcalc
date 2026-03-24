@@ -11,7 +11,7 @@ class SettingSeeder extends Seeder
     {
         $settings = [
             // FEIE settings for 2025 and 2026 (US Foreign Earned Income Exclusion)
-            ['key' => 'feie_amount_2025', 'value' => '130000', 'type' => 'integer', 'description' => '2025 Foreign Earned Income Exclusion limit (USD)'],
+            ['key' => 'feie_amount_2025', 'value' => '126500', 'type' => 'integer', 'description' => '2025 Foreign Earned Income Exclusion limit (USD)'],
             ['key' => 'feie_amount_2026', 'value' => '132900', 'type' => 'integer', 'description' => '2026 Foreign Earned Income Exclusion limit (USD)'],
             ['key' => 'feie_min_days', 'value' => '330', 'type' => 'integer', 'description' => 'Minimum days outside US to qualify for FEIE'],
             

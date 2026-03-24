@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, X, DollarSign, Percent } from "lucide-react";
+import React, { useState, useImperativeHandle, forwardRef } from "react";
+import { Plus, X, DollarSign, Percent, AlertCircle } from "lucide-react";
 import Select from "@/Components/Form/Select";
 
-export default function TaxTypeSelector({
+const TaxTypeSelector = forwardRef(function TaxTypeSelector({
     countryName,
     countryId,
     value = [],
     onChange,
     availableTaxTypes = [],
     className = "",
-}) {
+}, ref) {
     // Auto-expand if there are custom taxes or any entry with a filled amount
     const hasCustomEntries = value.some(
         (entry) =>
@@ -22,6 +22,19 @@ export default function TaxTypeSelector({
     );
     const [isExpanded, setIsExpanded] = useState(hasCustomEntries);
     const [selectedTaxTypes, setSelectedTaxTypes] = useState(value);
+    const [validationErrors, setValidationErrors] = useState([]);
+
+    // ── Toggle: clear entries when unchecking ─────────────────────────────────
+    const handleToggle = () => {
+        const next = !isExpanded;
+        setIsExpanded(next);
+        if (!next) {
+            // User collapsed the panel — wipe entries so they don't pollute calc
+            setSelectedTaxTypes([]);
+            setValidationErrors([]);
+            onChange([]);
+        }
+    };
 
     // Add new tax type entry
     const handleAddTaxType = () => {
@@ -43,6 +56,7 @@ export default function TaxTypeSelector({
     const handleRemove = (id) => {
         const updated = selectedTaxTypes.filter((item) => item.id !== id);
         setSelectedTaxTypes(updated);
+        setValidationErrors((prev) => prev.filter((eId) => eId !== id));
         onChange(updated);
     };
 
@@ -56,8 +70,39 @@ export default function TaxTypeSelector({
             return { ...item, [fieldOrFields]: value };
         });
         setSelectedTaxTypes(updated);
+        // Clear validation error for this entry once user starts filling it
+        setValidationErrors((prev) => prev.filter((eId) => eId !== id));
         onChange(updated);
     };
+
+    // ── Validation: check all entries before parent form submission ───────────
+    // Expose via a ref-compatible pattern — called by checking the DOM dataset.
+    // We piggy-back on a data attribute that Step2Form reads before submitting.
+    const validate = () => {
+        if (!isExpanded) return true;
+        const errors = [];
+        for (const entry of selectedTaxTypes) {
+            const missingName =
+                entry.is_custom
+                    ? !entry.custom_name || entry.custom_name.trim() === ""
+                    : !entry.tax_type_id || entry.tax_type_id === "";
+            const missingAmount =
+                entry.amount === "" ||
+                entry.amount === null ||
+                entry.amount === undefined;
+
+            if (missingName || missingAmount) {
+                errors.push(entry.id);
+            }
+        }
+        setValidationErrors(errors);
+        return errors.length === 0;
+    };
+
+    // ── Expose validate() via ref so Step2Form can call it before submit ─────
+    useImperativeHandle(ref, () => ({
+        validate,
+    }), [selectedTaxTypes, isExpanded]);
 
     // Get tax type options (exclude already selected ones)
     const getAvailableTaxTypeOptions = (currentId) => {
@@ -74,12 +119,18 @@ export default function TaxTypeSelector({
     };
 
     return (
-        <div className={`${className}`}>
+        <div
+            className={`${className}`}
+            // Expose validate fn on the DOM element so Step2Form can call it
+            ref={(el) => {
+                if (el) el.__validateCustomTaxes = validate;
+            }}
+        >
             {/* Toggle Button */}
             <button
                 type="button"
                 data-tour="step2-tax-types"
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={handleToggle}
                 className="w-full flex items-center justify-between px-4 py-3 bg-light border border-border-gray rounded-lg hover:bg-gray-50 transition-colors"
             >
                 <div className="flex items-center gap-2">
@@ -111,6 +162,7 @@ export default function TaxTypeSelector({
                         <TaxTypeEntry
                             key={entry.id}
                             entry={entry}
+                            hasError={validationErrors.includes(entry.id)}
                             availableOptions={getAvailableTaxTypeOptions(
                                 entry.id,
                             )}
@@ -135,28 +187,27 @@ export default function TaxTypeSelector({
             )}
         </div>
     );
-}
+}); // end forwardRef
+
+export default TaxTypeSelector;
 
 // Individual Tax Type Entry Component
 function TaxTypeEntry({
     entry,
+    hasError,
     availableOptions,
     availableTaxTypes,
     onUpdate,
     onRemove,
 }) {
     // Build options list that includes the currently selected option (if predefined)
-    // This fixes the display issue where selected options disappear from the dropdown
     const allOptions = React.useMemo(() => {
-        // If predefined tax type is selected, add it back to options for display
         if (!entry.is_custom && entry.tax_type_id) {
-            // Check if it's already in availableOptions
             const alreadyExists = availableOptions.some(
                 (opt) => opt.value === entry.tax_type_id,
             );
 
             if (!alreadyExists) {
-                // Find the actual tax type from availableTaxTypes
                 const selectedTaxType = availableTaxTypes.find(
                     (t) => t.id.toString() === entry.tax_type_id,
                 );
@@ -172,7 +223,6 @@ function TaxTypeEntry({
             }
         }
 
-        // If custom, add it as an option for display
         if (entry.is_custom && entry.custom_name) {
             return [
                 { value: entry.custom_name, label: entry.custom_name },
@@ -183,8 +233,33 @@ function TaxTypeEntry({
         return availableOptions;
     }, [entry, availableOptions, availableTaxTypes]);
 
+    const missingName =
+        entry.is_custom
+            ? !entry.custom_name || entry.custom_name.trim() === ""
+            : !entry.tax_type_id || entry.tax_type_id === "";
+    const missingAmount =
+        entry.amount === "" ||
+        entry.amount === null ||
+        entry.amount === undefined;
+
     return (
-        <div className="bg-white rounded-lg border border-border-gray p-4 space-y-3">
+        <div
+            className={`bg-white rounded-lg border p-4 space-y-3 ${
+                hasError ? "border-red-400 bg-red-50/30" : "border-border-gray"
+            }`}
+        >
+            {/* Validation banner */}
+            {hasError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm font-medium">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {missingName && missingAmount
+                        ? "Please select a tax type and enter a rate/amount."
+                        : missingName
+                        ? "Please select or name a tax type."
+                        : "Please enter a rate or amount."}
+                </div>
+            )}
+
             {/* Header with Remove Button */}
             <div className="flex items-start justify-between gap-2 relative">
                 <div className="flex-1 space-y-3">
@@ -197,20 +272,17 @@ function TaxTypeEntry({
                                 : entry.tax_type_id
                         }
                         onChange={(value) => {
-                            // Check against ALL availableTaxTypes, not just filtered availableOptions
                             const isPredefined = availableTaxTypes.some(
                                 (taxType) => taxType.id.toString() === value,
                             );
 
                             if (isPredefined) {
-                                // Predefined tax type — single batched update
                                 onUpdate({
                                     tax_type_id: value,
                                     is_custom: false,
                                     custom_name: "",
                                 });
                             } else {
-                                // Custom tax name — single batched update
                                 onUpdate({
                                     custom_name: value,
                                     is_custom: true,
@@ -223,9 +295,12 @@ function TaxTypeEntry({
                         creatable={true}
                         helpText={
                             entry.is_custom
-                                ? `Custom tax: "${entry.custom_name}"`
-                                : "Search for a tax type or type to create a custom one"
+                                ? `Custom tax: "${entry.custom_name}" — fully custom, applied as-is`
+                                : entry.amount !== "" && entry.amount !== null && entry.amount !== undefined
+                                ? `⚠️ This adds ${entry.amount}% on top of the standard system calculation for this tax type`
+                                : "Leave blank to use the standard brackets/rates, or enter a value to add an extra amount"
                         }
+                        hasError={hasError && missingName}
                     />
                 </div>
 
@@ -292,7 +367,11 @@ function TaxTypeEntry({
                         }
                         step="any"
                         min="0"
-                        className="w-full px-4 py-3 pr-12 border border-border-gray rounded-lg text-base font-sans focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
+                        className={`w-full px-4 py-3 pr-12 border rounded-lg text-base font-sans focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition ${
+                            hasError && missingAmount
+                                ? "border-red-400 bg-red-50/30"
+                                : "border-border-gray"
+                        }`}
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
                         {entry.amount_type === "percentage" ? "%" : "$"}

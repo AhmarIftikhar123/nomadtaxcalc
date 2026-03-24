@@ -4,12 +4,18 @@ namespace App\Services\TaxCalculator;
 
 use App\Models\Country;
 
+/**
+ * Generate actionable tax optimization recommendations.
+ *
+ * Analyses residency data and tax breakdowns to suggest ways the user
+ * can reduce their tax burden through travel adjustments or jurisdiction changes.
+ */
 class RecommendationService
 {
     /**
      * Generate smart recommendations based on calculation results
      */
-    public function generate(array $residencyResults, array $taxBreakdown, float $totalTax): array
+    public function generate(array $residencyResults, array $taxBreakdown, float $totalTax, string $currency = 'USD', string $currencySymbol = '$'): array
     {
         $recommendations = [];
 
@@ -20,7 +26,7 @@ class RecommendationService
         $recommendations = array_merge($recommendations, $this->getResidencyRestructuring($residencyResults));
 
         // Zero-tax opportunities
-        $recommendations = array_merge($recommendations, $this->getZeroTaxOpportunities($totalTax));
+        $recommendations = array_merge($recommendations, $this->getZeroTaxOpportunities($totalTax, $currencySymbol));
 
         return $recommendations;
     }
@@ -32,7 +38,7 @@ class RecommendationService
         // Find highest tax country
         if (!empty($taxBreakdown)) {
             $highestTax = collect($taxBreakdown)->sortByDesc('tax_due')->first();
-            
+
             if ($highestTax && $highestTax['tax_due'] > 0) {
                 $recommendations[] = [
                     'type' => 'tax_optimization',
@@ -49,11 +55,11 @@ class RecommendationService
     private function getResidencyRestructuring(array $residencyResults): array
     {
         $recommendations = [];
-        // dd($residencyResults);
+
         foreach ($residencyResults as $result) {
             if ($result['is_tax_resident'] && isset($result['threshold'])) {
                 $daysDiff = $result['days_spent'] - $result['threshold'];
-                
+
                 if ($daysDiff >= 0 && $daysDiff <= 30) {
                     $recommendations[] = [
                         'type' => 'residency_optimization',
@@ -68,7 +74,7 @@ class RecommendationService
         return $recommendations;
     }
 
-    private function getZeroTaxOpportunities(float $totalTax): array
+    private function getZeroTaxOpportunities(float $totalTax, string $currencySymbol = '$'): array
     {
         $recommendations = [];
 
@@ -81,12 +87,12 @@ class RecommendationService
 
         if ($totalTax > 10000 && $zeroTaxCountries->isNotEmpty()) {
             $countryNames = $zeroTaxCountries->pluck('name')->join(', ');
-            
+
             $recommendations[] = [
                 'type' => 'zero_tax',
                 'priority' => 'high',
                 'title' => 'Consider zero-tax jurisdictions',
-                'message' => "With your tax burden of $" . number_format($totalTax) . ", you could save significantly by spending more time in zero-tax countries like {$countryNames}.",
+                'message' => "With your tax burden of {$currencySymbol}" . number_format($totalTax) . ", you could save significantly by spending more time in zero-tax countries like {$countryNames}.",
             ];
         }
 

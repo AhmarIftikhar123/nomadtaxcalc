@@ -21,6 +21,7 @@ return new class extends Migration
             // Tax System Information
             $table->boolean('has_progressive_tax')->default(true);
             $table->decimal('flat_tax_rate', 5, 2)->nullable();
+            $table->decimal('standard_deduction', 15, 2)->nullable(); // Personal allowance in local currency
             $table->boolean('taxes_worldwide_income')->default(false);
             $table->enum('tax_basis', ['worldwide', 'territorial', 'remittance'])->default('worldwide');
 
@@ -33,6 +34,7 @@ return new class extends Migration
             
             // Tax Residency Rules
             $table->integer('tax_residency_days')->default(183);
+            $table->integer('worldwide_income_threshold')->nullable(); // Days threshold for full worldwide income (null = use tax_residency_days)
             $table->boolean('counts_arrival_day')->default(true);
             $table->boolean('counts_departure_day')->default(false);
             $table->boolean('considers_center_of_vital_interests')->default(false);

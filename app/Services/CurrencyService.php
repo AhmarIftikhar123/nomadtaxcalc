@@ -30,7 +30,7 @@ class CurrencyService
     {
         return Cache::remember('currency.list', now()->addMinutes($this->ttl), function () {
             try {
-                $response = Http::timeout(5)->get("{$this->apiUrl}/currencies");
+                $response = Http::timeout(10)->get("{$this->apiUrl}/currencies");
 
                 if (!$response->successful()) {
                     return [];
@@ -63,10 +63,10 @@ class CurrencyService
      */
     public function convert(float $amount, string $from, string $to): float
     {
-        if ($from === $to || $amount == 0) {
+
+        if ($from === $to || $amount === 0) {
             return $amount;
         }
-
         $rate = $this->getRate($from, $to);
         return round($amount * $rate, 2);
     }

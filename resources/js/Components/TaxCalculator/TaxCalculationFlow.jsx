@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 export default function TaxCalculationFlow({ result }) {
+    console.group(result);
     const [isOpen, setIsOpen] = useState(true);
     const formatCurrency = (value) => {
         return new Intl.NumberFormat("en-US", {
@@ -400,7 +401,12 @@ export default function TaxCalculationFlow({ result }) {
                                                         </div>
 
                                                         <div className="h-px bg-border-gray my-2"></div>
-
+                                                        {taxDetails.ftc_applied > 0 && (
+                                                            <div className="ftc-row flex items-center justify-between">
+                                                                <span>Foreign Tax Credit Applied :</span>
+                                                                <span className="text-sm font-bold text-primary"> - ${taxDetails.ftc_applied.toLocaleString()}</span>
+                                                            </div>
+                                                        )}            
                                                         {/* Subtotal */}
                                                         <div className="flex justify-between items-center">
                                                             <span className="text-sm font-bold text-primary">

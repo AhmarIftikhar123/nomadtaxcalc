@@ -30,7 +30,7 @@ import TreatiesApplied from "@/Components/TaxCalculator/TreatiesApplied";
 import FEIEStatus from "@/Components/TaxCalculator/FEIEStatus";
 import ResidencyInsights from "@/Components/TaxCalculator/ResidencyInsights";
 import DisclaimerBanner from "@/Components/ui/DisclaimerBanner";
-import Tooltip from "@/Components/Ui/Tooltip";
+import Tooltip from "@/Components/UI/Tooltip";
 import ShareLinkModal from "@/Components/Ui/ShareLinkModal";
 
 export default function TaxCalculatorIndex({
@@ -198,6 +198,8 @@ export default function TaxCalculatorIndex({
     // ─── Step 2 Submit ───────────────────────────────────────────
     const handleStep2Submit = () => {
         setCalculationError(null);
+        setHasSaved(false);
+        setEmailSent(false);
         post(route("tax-calculator.step-2.store"), {
             preserveState: true,
             preserveScroll: true,

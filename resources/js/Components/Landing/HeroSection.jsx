@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import Illustration from "@/assets/images/illustrations/hero-illustration.mp4";
+import { Link } from "@inertiajs/react";
 
 export default function HeroSection() {
     const videRef = useRef(null);
@@ -58,12 +59,13 @@ export default function HeroSection() {
 
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                        <a href={route("tax-calculator.index")} className="flex min-w-[180px] cursor-pointer items-center justify-center rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-md hover:shadow-lg hover:translate-y-[-1px] active:translate-y-[0px] transition-all">
+                        <Link href={route("tax-calculator.index")} className="flex min-w-[180px] cursor-pointer items-center justify-center rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-md hover:shadow-lg hover:translate-y-[-1px] active:translate-y-[0px] transition-all">
                             Calculate Your Taxes
+                        </Link>
+                       
+                        <a href='https://nomadtaxcalc.com/blog/how-to-use-nomadtaxcalc/' className="flex min-w-[180px] cursor-pointer items-center justify-center rounded-lg h-12 px-6 border border-primary/20 dark:border-white/20 text-primary dark:text-white text-base font-bold hover:bg-primary/5 transition-all">
+                            Usage Guide
                         </a>
-                        <button className="flex min-w-[180px] cursor-pointer items-center justify-center rounded-lg h-12 px-6 border border-primary/20 dark:border-white/20 text-primary dark:text-white text-base font-bold hover:bg-primary/5 transition-all">
-                            View Tax Guides
-                        </button>
                     </div>
                 </div>
 

@@ -4,6 +4,7 @@ import React from "react";
 import { MapPin, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export default function ResidencyInsights({ residencyData }) {
+    console.group(residencyData);
     if (!residencyData || residencyData.length === 0) {
         return null;
     }
@@ -17,6 +18,7 @@ export default function ResidencyInsights({ residencyData }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {residencyData.map((country, idx) => {
                     const isResident = country.is_tax_resident;
+                    const isCitizenshipBased = country.is_citizenship_based;
                     const flagCode = (
                         country.country_code || "US"
                     ).toLowerCase();
@@ -45,7 +47,9 @@ export default function ResidencyInsights({ residencyData }) {
                                         {country.country_name}
                                     </h4>
                                     <p className="text-xs text-gray">
-                                        Threshold: {country.threshold} days
+                                        {isCitizenshipBased
+                                            ? "Citizen-based taxation"
+                                            : `Threshold: ${country.threshold} days`}
                                     </p>
                                 </div>
                             </div>
@@ -63,7 +67,7 @@ export default function ResidencyInsights({ residencyData }) {
                                     {isResident ? (
                                         <span className="bg-red-100 text-red-800 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
                                             <AlertTriangle className="w-4 h-4" />
-                                            Tax Resident
+                                            {isCitizenshipBased ? "Citizen Resident" : "Tax Resident"}
                                         </span>
                                     ) : (
                                         <span className="bg-gray/10 text-gray text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5">

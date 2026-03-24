@@ -1878,12 +1878,53 @@ class TaxBracketSeedar2025 extends Seeder
                 [6500, 14500, 10.00],
                 [14500, null, 20.00],
             ],
+
+            // -- Anguilla (2025) --
+            // Source: Inland Revenue Department Anguilla
+            // No personal income tax - British Overseas Territory
+            'AI' => [
+                [0, null, 0.00],
+            ],
+
+            // -- Iran (2025) --
+            // Source: Iran Tax Administration (INTA)
+            // Iranian Rial (IRR), annual income
+            'IR' => [
+                [0, 84000000, 0.00],
+                [84000000, 280000000, 10.00],
+                [280000000, 560000000, 15.00],
+                [560000000, 1120000000, 20.00],
+                [1120000000, null, 25.00],
+            ],
+
+            // -- Montserrat (2025) --
+            // Source: Inland Revenue Department Montserrat
+            // Eastern Caribbean Dollar (XCD)
+            'MS' => [
+                [0, 14160, 0.00],
+                [14160, null, 20.00],
+            ],
+
+            // -- Turks and Caicos Islands (2025) --
+            // Source: Government of Turks and Caicos Islands
+            // No personal income tax - British Overseas Territory
+            'TC' => [
+                [0, null, 0.00],
+            ],
+
+            // -- British Virgin Islands (2025) --
+            // Source: Inland Revenue Department BVI
+            // No personal income tax
+            'VG' => [
+                [0, null, 0.00],
+            ],
         ];
 
         $records = [];
 
         foreach ($allBrackets as $isoCode => $brackets) {
             $countryId = DB::table('countries')->where('iso_code', $isoCode)->value('id');
+            $currencyCode = DB::table('countries')->where('iso_code', $isoCode)->value('currency_code');
             if (!$countryId) continue;
 
             foreach ($brackets as $bracket) {
@@ -1897,6 +1938,7 @@ class TaxBracketSeedar2025 extends Seeder
                     'rate'        => $bracket[2],
                     'has_cap'     => false,
                     'annual_cap'  => null,
+                    'currency_code' => $currencyCode,
                     'is_active'   => true,
                     'created_at'  => now(),
                     'updated_at'  => now(),
@@ -1949,6 +1991,7 @@ class TaxBracketSeedar2025 extends Seeder
                         'rate'        => $bracket[2],
                         'has_cap'     => false,
                         'annual_cap'  => null,
+                        'currency_code' => 'USD',
                         'is_active'   => true,
                         'created_at'  => now(),
                         'updated_at'  => now(),

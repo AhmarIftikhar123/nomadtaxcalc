@@ -20,6 +20,7 @@ return new class extends Migration
             $table->decimal('rate', 5, 2); // percentage (e.g. 24.00 for 24%)
             $table->boolean('has_cap')->default(false);
             $table->decimal('annual_cap', 15, 2)->nullable(); // Max amount collectible
+            $table->char('currency_code', 3)->nullable(); // Currency brackets are denominated in
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 

@@ -26,6 +26,7 @@ export default function ResidencyPeriodItem({
     isTaxResident,
     selectedTaxTypes = [],
     availableTaxTypes = [],
+    taxSelectorRef,
     onUpdate,
 }) {
     const countryDisplayName = country_name || country;
@@ -165,7 +166,7 @@ export default function ResidencyPeriodItem({
                                 <span>Loading…</span>
                             </div>
                         ) : availableCurrencies.length > 1 ? (
-                            <div className="md:w-52 w-full">
+                            <div className="md:w-80 w-full">
                                 <Select
                                     value={activeCurrency}
                                     onChange={(val) =>
@@ -203,6 +204,7 @@ export default function ResidencyPeriodItem({
             {/* Tax Type Selector */}
             <div className="pl-0 mt-4 sm:pl-16 sm:mt-0">
                 <TaxTypeSelector
+                    ref={taxSelectorRef}
                     countryName={countryDisplayName}
                     value={selectedTaxTypes}
                     onChange={(newTypes) =>

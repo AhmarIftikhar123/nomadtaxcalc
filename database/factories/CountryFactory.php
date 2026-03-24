@@ -22,9 +22,11 @@ class CountryFactory extends Factory
             'slug'                => \Illuminate\Support\Str::slug($name),
             'has_progressive_tax' => true,
             'flat_tax_rate'       => null,
+            'standard_deduction'  => null,
             'taxes_worldwide_income' => true,
             'has_digital_nomad_visa' => false,
             'tax_residency_days'  => 183,
+            'worldwide_income_threshold' => null,
             'counts_arrival_day'  => true,
             'counts_departure_day' => true,
             'considers_center_of_vital_interests' => false,
@@ -69,7 +71,9 @@ class CountryFactory extends Factory
             'slug'                => 'united-states',
             'has_progressive_tax' => true,
             'flat_tax_rate'       => null,
+            'standard_deduction'  => 15700,
             'tax_residency_days'  => 183,
+            'worldwide_income_threshold' => 0, // US citizens taxed worldwide regardless of days
         ]);
     }
 

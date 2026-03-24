@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\TaxCalculator\StoreStep1Request;
 use App\Http\Requests\TaxCalculator\StoreStep2Request;
 use App\Mail\TaxResultsMail;
-use App\Models\Country;
 use App\Models\State;
 use App\Models\TaxBracket;
 use App\Models\TaxType;
@@ -16,6 +15,7 @@ use App\Services\SeoService;
 use App\Services\TaxCalculator\TaxCalculatorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -138,6 +138,7 @@ class TaxCalculatorController extends Controller
 
     try {
       $periods = $request->residency_periods;
+
       session(['tax_calc_step2' => $periods]);
 
       // ── Cache key: hash of step1 + periods input ──────────────────
@@ -151,7 +152,7 @@ class TaxCalculatorController extends Controller
 
       return back()->with(['calculationResult' => $result]);
     } catch (\Exception $e) {
-      \Log::error('Tax Calculation Error: ' . $e->getMessage(), [
+      Log::error('Tax Calculation Error: ' . $e->getMessage(), [
         'trace' => $e->getTraceAsString(),
       ]);
 

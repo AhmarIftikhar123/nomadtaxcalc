@@ -9,22 +9,31 @@ export default function ResidencyRiskAlert({ residencyData }) {
         return null;
     }
 
-    // Separate into distinct cases
-    const citizenshipBased = residencyData.filter(r => r.threshold === 0 && r.has_income_tax);
-    const confirmedResidents = residencyData.filter(r => r.is_tax_resident && r.threshold > 0 && r.has_income_tax);
-    const nearThreshold = residencyData.filter(r => 
-        !r.is_tax_resident && 
-        r.has_income_tax && 
-        r.threshold > 0 &&
-        (r.threshold - r.days_spent) <= 30
+    // Separate into distinct cases using the backend's is_citizenship_based flag.
+    // US citizens are always tax-resident regardless of days — they must NOT
+    // appear in the day-threshold sections (confirmedResidents, nearThreshold, etc.)
+    const citizenshipBased = residencyData.filter(r => r.is_citizenship_based && r.has_income_tax);
+    const confirmedResidents = residencyData.filter(r =>
+        r.is_tax_resident &&
+        !r.is_citizenship_based &&
+        r.has_income_tax &&
+        r.threshold > 0
     );
-    const safeNonResidents = residencyData.filter(r => 
-        !r.is_tax_resident && 
-        r.has_income_tax && 
+    const nearThreshold = residencyData.filter(r =>
+        !r.is_tax_resident &&
+        !r.is_citizenship_based &&
+        r.has_income_tax &&
         r.threshold > 0 &&
-        (r.threshold - r.days_spent) > 30
+        (r.threshold - (r.adjusted_days ?? r.days_spent)) <= 30
     );
-    const zeroTaxCountries = residencyData.filter(r => !r.has_income_tax && r.days_spent >= 150);
+    const safeNonResidents = residencyData.filter(r =>
+        !r.is_tax_resident &&
+        !r.is_citizenship_based &&
+        r.has_income_tax &&
+        r.threshold > 0 &&
+        (r.threshold - (r.adjusted_days ?? r.days_spent)) > 30
+    );
+    const zeroTaxCountries = residencyData.filter(r => !r.has_income_tax && !r.is_citizenship_based && r.days_spent >= 150);
 
     return (
         <div className="mb-12 space-y-4">
@@ -49,7 +58,8 @@ export default function ResidencyRiskAlert({ residencyData }) {
 
             {/* Confirmed tax residents — NOT "may trigger", it already triggered */}
             {confirmedResidents.map(country => {
-                const daysOver = country.days_spent - country.threshold;
+                const days = country.adjusted_days ?? country.days_spent;
+                const daysOver = days - country.threshold;
                 const isBarelyResident = daysOver <= 14;
                 return (
                     <div key={country.country_id} className="rounded-xl p-6 md:p-8 border-l-4 bg-red-50 border-red-500">

@@ -3,11 +3,18 @@
 namespace App\Services\TaxCalculator;
 
 use App\Models\Country;
+use App\Models\TaxType;
 use App\Models\UserCalculation;
 use App\Models\UserCalculationCountry;
 use App\Services\CurrencyService;
 use Carbon\Carbon;
 
+/**
+ * Orchestrates the full tax calculation pipeline.
+ *
+ * Coordinates residency determination, per-country tax calculation,
+ * treaty resolution, FEIE, social security, and recommendations.
+ */
 class TaxCalculatorService
 {
     public function __construct(
@@ -16,6 +23,7 @@ class TaxCalculatorService
         protected TreatyResolutionService $treatyService,
         protected FeieCalculationService $feieService,
         protected RecommendationService $recommendationService,
+        protected SocialSecurityService $socialSecurityService,
         protected CurrencyService $currencyService,
     ) {}
 
@@ -24,8 +32,12 @@ class TaxCalculatorService
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Active countries for dropdowns.
-     * Includes tax_basis so the frontend can show the territorial income field.
+     * Return active countries for dropdown menus.
+     *
+     * Includes `tax_basis` so the frontend can conditionally render
+     * the territorial/remittance local-income field.
+     *
+     * @return \Illuminate\Support\Collection<int, array>
      */
     public function getCountries()
     {
@@ -33,7 +45,7 @@ class TaxCalculatorService
             ->select('id', 'name', 'iso_code', 'currency_code', 'currency_symbol', 'tax_basis')
             ->orderBy('name')
             ->get()
-            ->map(fn ($c) => [
+            ->map(fn($c) => [
                 'id'              => $c->id,
                 'name'            => $c->name,
                 'code'            => $c->iso_code,
@@ -44,7 +56,9 @@ class TaxCalculatorService
     }
 
     /**
-     * Distinct currencies from active countries.
+     * Return distinct currencies derived from active countries.
+     *
+     * @return array<int, array{code: string, name: string, symbol: string}>
      */
     public function getCurrencies(): array
     {
@@ -53,7 +67,7 @@ class TaxCalculatorService
             ->distinct()
             ->orderBy('currency_code')
             ->get()
-            ->map(fn ($c) => [
+            ->map(fn($c) => [
                 'code'   => $c->currency_code,
                 'name'   => $c->currency_code . ' (' . $c->currency_symbol . ')',
                 'symbol' => $c->currency_symbol,
@@ -67,8 +81,13 @@ class TaxCalculatorService
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Validate & normalise Step 1 data for storage in session.
-     * No DB write.
+     * Validate and normalise Step 1 data for session storage.
+     *
+     * Resolves the citizenship country from the DB and returns a clean
+     * payload ready to be stored in the session. No DB write.
+     *
+     * @param  array  $data  Raw form input from StoreStep1Request.
+     * @return array         Normalised payload with resolved country info.
      */
     public function buildSessionStep1Payload(array $data): array
     {
@@ -87,7 +106,13 @@ class TaxCalculatorService
 
     /**
      * Run the full tax pipeline from raw session arrays.
-     * This is the core calculation method — called right after Step 2 submit.
+     *
+     * This is the core calculation entry point — called after Step 2 submit.
+     * Pipeline: Residency → Per-country tax → Treaties → FEIE → Aggregate → Recommendations.
+     *
+     * @param  array  $step1    Normalised Step 1 session data.
+     * @param  array  $periods  Raw residency period arrays from the frontend.
+     * @return array            Complete calculation result for the frontend.
      */
     public function calculateTaxesFromSession(array $step1, array $periods): array
     {
@@ -98,29 +123,39 @@ class TaxCalculatorService
         $domicileStateId       = $step1['domicile_state_id'] ?? null;
 
         // ── Step 1: Determine residency ──────────────────────────────────────
-        $residencyResults  = $this->residencyService->determine($periods);
+        $residencyResults   = $this->residencyService->determine($periods, $citizenshipCountryId);
         $taxResidentPeriods = [];
 
+        // BUG-1 FIX: Key periods by country_id so we match correctly even if
+        // determine() skips a country (via `continue` on missing data), which
+        // would shift all subsequent array indices.
+        $periodsMap = collect($periods)->keyBy('country_id');
+
+        // Pre-load all needed countries to avoid N+1 queries
+        $countryIds   = array_unique(array_column($residencyResults, 'country_id'));
+        $countriesMap = Country::whereIn('id', $countryIds)->get()->keyBy('id');
+
         foreach ($residencyResults as $index => $result) {
-            $country       = Country::find($result['country_id']);
-            $hasIncomeTax  = $country && (
+            $country      = $countriesMap[$result['country_id']] ?? null;
+            $hasIncomeTax = $country && (
                 $country->has_progressive_tax ||
                 ($country->flat_tax_rate !== null && $country->flat_tax_rate > 0)
             );
 
-            $residencyResults[$index]['country_name'] = $country?->name ?? '';
-            $residencyResults[$index]['country_code'] = $country?->iso_code ?? '';
+            $residencyResults[$index]['country_name']  = $country?->name ?? '';
+            $residencyResults[$index]['country_code']  = $country?->iso_code ?? '';
             $residencyResults[$index]['has_income_tax'] = $hasIncomeTax;
-            $residencyResults[$index]['threshold'] = $country?->tax_residency_days;
+            $residencyResults[$index]['threshold']      = $country?->tax_residency_days;
 
-            // Carry local_income from the original period payload
-            $residencyResults[$index]['local_income'] = $periods[$index]['local_income'] ?? null;
+            // BUG-1 FIX: Match period by country_id, not array position
+            $matchedPeriod = $periodsMap->get($result['country_id'], []);
+            $residencyResults[$index]['local_income'] = $matchedPeriod['local_income'] ?? null;
 
             if ($result['is_tax_resident']) {
                 $taxResidentPeriods[] = array_merge($result, [
-                    'state_id'     => $periods[$index]['state_id'] ?? null,
-                    'local_income' => $periods[$index]['local_income'] ?? null,
-                    'selected_tax_types' => $periods[$index]['selected_tax_types'] ?? [],
+                    'state_id'           => $matchedPeriod['state_id'] ?? null,
+                    'local_income'       => $matchedPeriod['local_income'] ?? null,
+                    'selected_tax_types' => $matchedPeriod['selected_tax_types'] ?? [],
                 ]);
             }
         }
@@ -129,7 +164,7 @@ class TaxCalculatorService
         $countryBreakdown = [];
 
         foreach ($taxResidentPeriods as $period) {
-            $country = Country::find($period['country_id']);
+            $country = $countriesMap[$period['country_id']] ?? null;
             if (!$country) continue;
 
             $localIncomeRaw      = (isset($period['local_income']) && $period['local_income'] !== '' && $period['local_income'] !== null)
@@ -137,7 +172,7 @@ class TaxCalculatorService
                 : null;
 
             // ── Currency conversion for local income ──────────────────────
-            $localIncomeCurrency = $period['local_income_currency'] ?? $currency;
+            $localIncomeCurrency  = $period['local_income_currency'] ?? $currency;
             $localIncomeConverted = null;
 
             if ($localIncomeRaw !== null) {
@@ -152,18 +187,43 @@ class TaxCalculatorService
                 $country,
                 $annualIncome,
                 $period['days_spent'],
-                $localIncomeConverted // already in step1 currency
+                $localIncomeConverted
             );
 
-            $taxTypesConfig = $this->buildTaxTypesConfigFromPeriod($period['selected_tax_types'] ?? []);
-
+            $taxTypesConfig = $this->buildTaxTypesConfigFromPeriod($period['selected_tax_types'] ?? []);;
             $taxResult = $this->taxCalcService->calculateForCountry(
                 $country,
                 $allocatedIncome,
                 $taxTypesConfig,
                 $taxYear,
-                $period['state_id'] ?? null
+                $period['state_id'] ?? null,
+                $currency, // pass user currency for cross-currency bracket conversion
             );
+
+            // ── Social Security Contributions ─────────────────────────────
+            $ssResult = $this->socialSecurityService->calculateSocialSecurity(
+                $country,
+                $allocatedIncome,
+                $taxYear,
+                $currency,
+                'employee',
+            );
+
+            // Append social security to the tax breakdown
+            if ($ssResult['total'] > 0) {
+                $taxResult['breakdown'][] = [
+                    'name'            => 'Social Security',
+                    'amount'          => $ssResult['total'],
+                    'details'         => count($ssResult['breakdown']) . ' fund(s)',
+                    'is_custom'       => false,
+                    'tax_type_key'    => 'social_security',
+                    'ss_breakdown'    => $ssResult['breakdown'],
+                ];
+                $taxResult['tax_due'] += $ssResult['total'];
+            }
+
+            // Recalculate effective rate after social security addition
+            $effectiveRate = $allocatedIncome > 0 ? ($taxResult['tax_due'] / $allocatedIncome) * 100 : 0;
 
             $countryBreakdown[] = [
                 'country_id'                => $country->id,
@@ -177,9 +237,11 @@ class TaxCalculatorService
                 'local_income_currency'     => $localIncomeCurrency,      // currency user selected
                 'allocated_income'          => round($allocatedIncome, 2),
                 'taxable_income'            => round($taxResult['taxable_income'], 2),
+                'deduction_amount'          => $taxResult['deduction_amount'] ?? 0,
                 'tax_due'                   => $taxResult['tax_due'],
-                'effective_rate'            => round($taxResult['effective_rate'], 2),
+                'effective_rate'            => round($effectiveRate, 2),
                 'tax_type_breakdown'        => $taxResult['breakdown'],
+                'social_security'           => $ssResult,
                 'method'                    => 'aggregated',
                 'is_tax_resident'           => true,
                 'threshold'                 => $country->tax_residency_days,
@@ -196,14 +258,19 @@ class TaxCalculatorService
 
         if ($feieResult && $feieResult['eligible']) {
             foreach ($countryBreakdown as &$bd) {
-                $c = Country::find($bd['country_id']);
+                $c = $countriesMap[$bd['country_id']] ?? null;
                 if ($c && $c->iso_code === 'US') {
                     $adjustedIncome = max(0, $bd['taxable_income'] - $feieResult['excluded_income']);
-                    $period = collect($taxResidentPeriods)->firstWhere('country_id', $bd['country_id']);
+                    $period         = collect($taxResidentPeriods)->firstWhere('country_id', $bd['country_id']);
                     $taxTypesConfig = $this->buildTaxTypesConfigFromPeriod($period['selected_tax_types'] ?? []);
-                    $stateId = $period['state_id'] ?? $domicileStateId;
-                    $adjustedTax = $this->taxCalcService->calculateForCountry($c, $adjustedIncome, $taxTypesConfig, $taxYear, $stateId);
-                    $bd['tax_due']        = $adjustedTax['tax_due'];
+                    $stateId        = $period['state_id'] ?? $domicileStateId;
+                    $adjustedTax    = $this->taxCalcService->calculateForCountry($c, $adjustedIncome, $taxTypesConfig, $taxYear, $stateId, $currency);
+
+                    // BUG-3 FIX: FEIE only reduces federal income tax. SS/FICA is
+                    // always calculated on full pre-FEIE income per IRS rules.
+                    // Preserve the original Social Security amount.
+                    $originalSsTotal  = $bd['social_security']['total'] ?? 0;
+                    $bd['tax_due']        = $adjustedTax['tax_due'] + $originalSsTotal;
                     $bd['feie_applied']   = true;
                     $bd['feie_exclusion'] = $feieResult['excluded_income'];
                 }
@@ -217,7 +284,9 @@ class TaxCalculatorService
         $effectiveTaxRate = $annualIncome > 0 ? ($totalTax / $annualIncome) * 100 : 0;
 
         // ── Step 6: Recommendations & Warnings ──────────────────────────────
-        $recommendations  = $this->recommendationService->generate($residencyResults, $countryBreakdown, $totalTax);
+        // Resolve currency symbol for recommendations
+        $currencySymbol = Country::where('currency_code', $currency)->value('currency_symbol') ?? '$';
+        $recommendations  = $this->recommendationService->generate($residencyResults, $countryBreakdown, $totalTax, $currency, $currencySymbol);
         $residencyWarnings = $this->residencyService->generateWarnings($residencyResults);
 
         return [
@@ -242,10 +311,19 @@ class TaxCalculatorService
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Persist a completed calculation for a logged-in user.
-     * Called only when the user explicitly clicks "Save Calculation".
+     * Persist (or update) a completed calculation for a logged-in user.
      *
-     * @param  int|null  $calculationId  Pass existing ID to update, null to create.
+     * Called only when the user explicitly clicks "Save Calculation".
+     * Re-runs residency determination to store per-country records.
+     *
+     * @param  int        $userId         Authenticated user ID.
+     * @param  array      $step1          Normalised Step 1 session data.
+     * @param  array      $periods        Raw residency periods from the frontend.
+     * @param  array      $result         Complete calculation result array.
+     * @param  int|null   $calculationId  Pass existing ID to update, null to create.
+     * @return UserCalculation             The saved (or updated) record.
+     *
+     * @throws \InvalidArgumentException If step1 or result data is missing.
      */
     public function saveCalculationForUser(int $userId, array $step1, array $periods, array $result, ?int $calculationId = null): UserCalculation
     {
@@ -292,13 +370,21 @@ class TaxCalculatorService
         // Re-save country periods
         $calculation->countriesVisited()->delete();
 
-        $residencyResults = $this->residencyService->determine($periods);
+        // BUG-2 FIX: Pass citizenship ID so US citizens are correctly marked
+        // as tax-resident even when they spent < 183 days in the US.
+        $residencyResults = $this->residencyService->determine(
+            $periods,
+            (int) $step1['citizenship_country_id']
+        );
+
+        // BUG-1 FIX (save path): Key periods by country_id for safe matching
+        $periodsMap = collect($periods)->keyBy('country_id');
 
         foreach ($residencyResults as $index => $residency) {
-            $period   = $periods[$index];
+            $period   = $periodsMap->get($residency['country_id'], []);
             $taxTypes = $period['selected_tax_types'] ?? [];
             $processed = !empty($taxTypes) ? $this->processCustomTaxes($taxTypes) : [
-                'selected_tax_type_ids' => [1],
+                'selected_tax_type_ids' => $this->getDefaultTaxTypeIds(),
                 'tax_type_overrides'    => null,
             ];
 
@@ -327,7 +413,12 @@ class TaxCalculatorService
 
     /**
      * Rebuild the Step 1 + Step 2 prefill arrays from a saved UserCalculation.
-     * Used when loading /tax-calculator?calculation_id=X.
+     *
+     * Used when loading `/tax-calculator?calculation_id=X` to restore the
+     * form state for editing.
+     *
+     * @param  UserCalculation  $calculation  The saved record (with countriesVisited eager-loaded).
+     * @return array{step1: array, periods: array}
      */
     public function rebuildPrefillFromCalculation(UserCalculation $calculation): array
     {
@@ -398,15 +489,24 @@ class TaxCalculatorService
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Build tax types config array from the raw frontend selected_tax_types array.
+     * Build the tax-types config array from the frontend's selected_tax_types.
+     *
+     * Translates the raw frontend array into the format expected by
+     * TaxCalculationService::calculateForCountry(). Custom taxes from the
+     * TaxTypeSelector component are additive — they sit on top of the
+     * standard system income tax calculation.
+     *
+     * @param  array  $selectedTaxTypes  Raw entries from the TaxTypeSelector.
+     * @return array                     Config array for calculateForCountry().
      */
     private function buildTaxTypesConfigFromPeriod(array $selectedTaxTypes): array
     {
         if (empty($selectedTaxTypes)) {
-            return [];
+            return []; // calculateForCountry() injects income_tax as fallback
         }
 
         $config = [];
+        $hasIncomeTaxEntry = false;
 
         foreach ($selectedTaxTypes as $tax) {
             if ($tax['is_custom'] ?? false) {
@@ -419,24 +519,64 @@ class TaxCalculatorService
                 ];
             } else {
                 if (empty($tax['tax_type_id'])) continue;
-                $entry = ['tax_type_id' => (int) $tax['tax_type_id'], 'is_custom' => false];
-                if (isset($tax['amount']) && $tax['amount'] !== '' && $tax['amount'] !== null) {
-                    $entry['amount_type'] = $tax['amount_type'] ?? 'percentage';
-                    $entry['amount']      = (float) $tax['amount'];
+
+                $config[] = [
+                    'tax_type_id' => (int) $tax['tax_type_id'],
+                    'is_custom'   => false,
+                ];
+
+                $taxType = TaxType::find((int) $tax['tax_type_id']);
+                if ($taxType && $taxType->key === 'income_tax') {
+                    $hasIncomeTaxEntry = true;
                 }
-                $config[] = $entry;
+
+                // Additive override: user typed an extra rate on top of the system calc
+                if (isset($tax['amount']) && $tax['amount'] !== '' && $tax['amount'] !== null) {
+                    $typeName = $taxType ? $taxType->name : 'Tax';
+                    $config[] = [
+                        'is_custom'   => true,
+                        'custom_name' => "Additional {$typeName}",
+                        'amount_type' => $tax['amount_type'] ?? 'percentage',
+                        'amount'      => (float) $tax['amount'],
+                    ];
+                }
+            }
+        }
+
+        // BUG-5 SAFETY NET: Custom taxes from the TaxTypeSelector are designed
+        // to be ADDITIVE on top of standard income tax (the UI says "Add
+        // custom/local taxes" and "adds on top of the standard system
+        // calculation"). If the user added only custom-named taxes (e.g.
+        // "Beckham Law") without selecting the predefined "Income Tax" type,
+        // we must still run the standard income tax brackets for the country.
+        if (!$hasIncomeTaxEntry) {
+            $incomeTaxType = TaxType::where('key', 'income_tax')->first();
+            if ($incomeTaxType) {
+                array_unshift($config, [
+                    'tax_type_id' => $incomeTaxType->id,
+                    'is_custom'   => false,
+                ]);
             }
         }
 
         return $config;
     }
 
+
+
     /**
-     * Process custom taxes from frontend format to DB storage format.
+     * Process custom taxes from the frontend format into DB storage format.
+     *
+     * Converts the TaxTypeSelector entries into the `selected_tax_type_ids`
+     * and `tax_type_overrides` columns stored in `user_calculation_countries`.
+     *
+     * @param  array  $customTaxes  Raw entries from the TaxTypeSelector.
+     * @return array{selected_tax_type_ids: array, tax_type_overrides: array|null}
      */
     private function processCustomTaxes(array $customTaxes): array
     {
-        $selectedTaxTypeIds = [1]; // Always include income_tax (id: 1)
+        // BUG-7 FIX: Look up income_tax ID by key instead of hard-coding 1
+        $selectedTaxTypeIds = $this->getDefaultTaxTypeIds();
         $taxTypeOverrides   = [];
 
         foreach ($customTaxes as $tax) {
@@ -469,6 +609,11 @@ class TaxCalculatorService
         ];
     }
 
+    /**
+     * Detect the client device type from the User-Agent header.
+     *
+     * @return string  One of 'mobile', 'tablet', or 'desktop'.
+     */
     private function detectDeviceType(): string
     {
         $ua = request()->header('User-Agent');
@@ -477,16 +622,36 @@ class TaxCalculatorService
         return 'desktop';
     }
 
+    /**
+     * Build a simplified comparison array sorted by highest tax liability.
+     *
+     * @param  array  $countryBreakdown  Per-country breakdown from the pipeline.
+     * @return array                     Sorted comparison entries for the chart.
+     */
     private function generateComparisonData(array $countryBreakdown): array
     {
-        $comparison = array_map(fn ($bd) => [
+        $comparison = array_map(fn($bd) => [
             'country'    => $bd['country_name'],
             'liability'  => $bd['tax_due'],
             'percentage' => $bd['effective_rate'],
         ], $countryBreakdown);
 
-        usort($comparison, fn ($a, $b) => $b['liability'] <=> $a['liability']);
+        usort($comparison, fn($a, $b) => $b['liability'] <=> $a['liability']);
 
         return $comparison;
+    }
+
+    /**
+     * Return the default tax type IDs for DB storage.
+     *
+     * Looks up income_tax by its key rather than hard-coding ID 1.
+     *
+     * @return array  Array containing the income_tax ID (if found).
+     */
+    private function getDefaultTaxTypeIds(): array
+    {
+        $incomeTaxId = TaxType::where('key', 'income_tax')->value('id');
+
+        return $incomeTaxId ? [$incomeTaxId] : [];
     }
 }

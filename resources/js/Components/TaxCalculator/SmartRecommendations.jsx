@@ -59,7 +59,7 @@ export default function SmartRecommendations({ recommendations, currency }) {
                                     <div className="flex items-start justify-between gap-4">
                                         <div>
                                             <p className="text-xs font-bold text-primary uppercase tracking-wide mb-1">
-                                                {recommendation.type}
+                                                {recommendation.type.split('_').join(' ')}
                                             </p>
                                             <h4 className="text-lg font-bold text-primary">
                                                 {recommendation.title}

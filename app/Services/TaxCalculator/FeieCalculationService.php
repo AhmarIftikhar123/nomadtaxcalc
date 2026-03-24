@@ -5,10 +5,28 @@ namespace App\Services\TaxCalculator;
 use App\Models\Setting;
 use App\Models\Country;
 
+/**
+ * Calculate the Foreign Earned Income Exclusion (FEIE) for US citizens.
+ *
+ * FEIE allows qualifying US citizens/residents abroad to exclude a portion
+ * of foreign earned income from federal income tax. Does NOT affect
+ * self-employment tax (SS/FICA) — that is always on full income.
+ */
 class FeieCalculationService
 {
     /**
-     * Calculate FEIE (Foreign Earned Income Exclusion) for US citizens
+     * Determine FEIE eligibility and calculate the exclusion amount.
+     *
+     * Eligibility requires the user to spend at least 330 full days outside
+     * the US in a 12-month period (Physical Presence Test). FEIE only
+     * reduces federal income tax — self-employment tax (SS/FICA) is
+     * always calculated on full pre-FEIE income per IRS rules.
+     *
+     * @param  int     $citizenshipCountryId  User's citizenship country ID.
+     * @param  array   $residencyResults      Per-country residency results.
+     * @param  float   $annualIncome          Total annual income.
+     * @param  int     $taxYear               Tax year for FEIE limit lookup.
+     * @return array|null                      Eligibility result, or null if not US citizen.
      */
     public function calculate(int $citizenshipCountryId, array $residencyResults, float $annualIncome, int $taxYear = 2026): ?array
     {

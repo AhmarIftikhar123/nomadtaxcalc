@@ -116,7 +116,7 @@ export default function Sidebar({ user, isCollapsed, isMobileOpen }) {
     // Logo href depends on auth
     const logoHref = isAuthenticated
         ? route("dashboard")
-        : route("tax-calculator.index");
+        : route("home");
 
     return (
         <aside

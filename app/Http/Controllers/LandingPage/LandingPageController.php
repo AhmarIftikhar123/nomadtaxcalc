@@ -131,8 +131,8 @@ class LandingPageController extends Controller
             ],
             [
                 'id' => 2,
-                'title' => '183-Day Rule Tracker',
-                'description' => 'Automated residency monitoring using your travel history to ensure you never accidentally trigger tax residency.',
+                'title' => 'Scenario Comparison Tool',
+                'description' => "What if I'd spent fewer days in Spain? Compare two travel scenarios side-by-side and instantly see the tax difference, residency impact, and how much you'd save.",
                 'icon' => 'schedule',
             ],
             [

@@ -16,4 +16,10 @@ export default defineConfig({
             "@": "/resources/js",
         },
     },
+    build: {
+        minify: "esbuild",
+        esbuild: {
+            drop: ["console", "debugger"], // Removes all console.* and debugger
+        },
+    },
 });

@@ -5,7 +5,7 @@ export default function HowItWorksSection({ howItWorks }) {
     const iconMap = {
         payments: <Calculator size={48} />,
         public: <Globe size={48} />,
-        description: <FileCheckCorner  size={48} />,
+        description: <FileCheckCorner size={48} />,
     };
 
     return (
@@ -14,9 +14,16 @@ export default function HowItWorksSection({ howItWorks }) {
             className="bg-light dark:bg-dark-surface px-6 py-20 lg:px-40"
         >
             <div className="max-w-[960px] mx-auto">
-                <h2 className="text-primary dark:text-white text-[32px] font-bold leading-tight tracking-[-0.015em] mb-12 text-center">
-                    How NomadTax Works
+                <h2 className="text-green-400 dark:text-white text-[22px] font-medium leading-tight tracking-[-0.015em] mb-4 text-center">
+                    How It Works
                 </h2>
+                <h2 className="text-primary dark:text-white text-[32px] font-bold leading-tight tracking-[-0.015em] mb-4 text-center">
+                    Three steps to total tax clarity
+                </h2>
+                <p className="text-gray text-center dark:text-gray-400 text-md md:text-md font-normal leading-relaxed max-w-[540px] mx-auto mb-12">
+                    No tax jargon. No accountant needed. Just your income, your
+                    countries, and a clear number.
+                </p>
                 <div className="space-y-16">
                     {howItWorks &&
                         howItWorks.map((step, index) => (

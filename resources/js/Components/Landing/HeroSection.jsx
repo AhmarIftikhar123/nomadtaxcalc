@@ -1,14 +1,8 @@
-import React, { useEffect, useRef } from "react";
-import Illustration from "@/assets/images/illustrations/hero-illustration.mp4";
+import React from "react";
 import { Link } from "@inertiajs/react";
+import HeroGlobe from "./HeroGlobe";
 
 export default function HeroSection() {
-    const videRef = useRef(null);
-
-    useEffect(() => {
-        if (videRef.current) videRef.current.playbackRate = 0.6;
-    }, []);
-
     return (
         <section className="w-full max-w-[1200px] mx-auto py-2 px-2">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
@@ -44,44 +38,44 @@ export default function HeroSection() {
 
                     {/* Heading & Subheading */}
                     <div className="flex flex-col gap-4">
-                        <h1 className="text-primary dark:text-white text-4xl md:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight">
-                            Calculate Your Digital Nomad Taxes in Seconds
+                        <h1 className="text-primary dark:text-white text-3xl md:text-4xl lg:text-5xl font-black leading-[1.1] tracking-tight">
+                            Stop Guessing. Calculate Your Nomad Taxes in
+                            Seconds.
                         </h1>
                         <p className="text-gray dark:text-gray-400 text-lg md:text-xl font-normal leading-relaxed max-w-[540px]">
-                            Navigate the{" "}
+                            The only calculator that tracks{" "}
                             <span className="text-primary dark:text-white font-semibold underline decoration-2 underline-offset-4 decoration-primary/20">
                                 183-day rule
                             </span>{" "}
-                            and international tax implications with ease.
-                            Professional tools for the modern remote workforce.
+                            residency thresholds, applies real tax treaties, and
+                            shows you exactly what you owe — across every
+                            country you've lived in.
                         </p>
                     </div>
 
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                        <Link href={route("tax-calculator.index")} className="flex min-w-[180px] cursor-pointer items-center justify-center rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-md hover:shadow-lg hover:translate-y-[-1px] active:translate-y-[0px] transition-all">
+                        <Link
+                            href={route("tax-calculator.index")}
+                            className="flex min-w-[180px] cursor-pointer items-center justify-center rounded-lg h-12 px-6 bg-primary text-white text-base font-bold shadow-md hover:shadow-lg hover:translate-y-[-1px] active:translate-y-[0px] transition-all"
+                        >
                             Calculate Your Taxes
                         </Link>
-                       
-                        <a href='https://nomadtaxcalc.com/blog/how-to-use-nomadtaxcalc/' className="flex min-w-[180px] cursor-pointer items-center justify-center rounded-lg h-12 px-6 border border-primary/20 dark:border-white/20 text-primary dark:text-white text-base font-bold hover:bg-primary/5 transition-all">
-                            Usage Guide
+
+                        <a
+                            href="https://nomadtaxcalc.com/blog/how-to-use-nomadtaxcalc/"
+                            className="flex min-w-[180px] cursor-pointer items-center justify-center rounded-lg h-12 px-6 border border-primary/20 dark:border-white/20 text-primary dark:text-white text-base font-bold hover:bg-primary/5 transition-all"
+                        >
+                            See How It Works
                         </a>
                     </div>
                 </div>
 
                 {/* Right Content - Illustration */}
-                <div className="relative group">
+                <div className="relative group mt-8 lg:mt-0">
                     <div className="absolute -inset-1 bg-gradient-to-r from-structure-light to-structure rounded-2xl blur opacity-25" />
-                    <div className="relative w-full aspect-square  overflow-hidden flex items-center justify-center">
-                        <video
-                            src={Illustration} // video URL
-                            ref={videRef}
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            className="w-full min-h-[450px] object-cover"
-                        />
+                    <div className="relative w-full flex items-center justify-center">
+                        <HeroGlobe />
                     </div>
                 </div>
             </div>

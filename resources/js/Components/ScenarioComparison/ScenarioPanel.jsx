@@ -183,24 +183,30 @@ export default function ScenarioPanel({
 
                                     <input
                                         type="number"
-                                        min="0"
                                         max="365"
                                         value={period.days_spent}
-                                        onChange={(e) =>
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+
+                                            if (val === "") {
+                                                onUpdatePeriod(
+                                                    idx,
+                                                    "days_spent",
+                                                    "",
+                                                );
+                                                return;
+                                            }
+
+                                            const num = Math.min(
+                                                365,
+                                                Math.max(0, Number(val)),
+                                            );
                                             onUpdatePeriod(
                                                 idx,
                                                 "days_spent",
-                                                Math.min(
-                                                    365,
-                                                    Math.max(
-                                                        0,
-                                                        Number(
-                                                            e.target.value,
-                                                        ) || 0,
-                                                    ),
-                                                ),
-                                            )
-                                        }
+                                                num,
+                                            );
+                                        }}
                                         className="w-20 h-8 text-center text-sm font-bold text-primary border border-border-gray rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                     />
 
@@ -260,7 +266,7 @@ export default function ScenarioPanel({
                         ) : (
                             <Tooltip
                                 text="Total must equal 365 for an accurate comparison"
-                                position="left"
+                                position="top"
                             >
                                 <AlertTriangle className="w-4 h-4 cursor-help" />
                             </Tooltip>
@@ -281,7 +287,7 @@ export default function ScenarioPanel({
                         <button
                             type="button"
                             onClick={() => setAddingCountry(false)}
-                            className="text-xs text-gray hover:text-primary transition-colors"
+                            className="text-xs ml-2 text-white bg-primary px-4 py-2 font-bold rounded-lg hover:text-gray transition-colors"
                         >
                             Cancel
                         </button>

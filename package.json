@@ -24,8 +24,10 @@
     },
     "dependencies": {
         "axois": "^0.0.1-security",
+        "cobe": "^2.0.1",
         "lucide-react": "^0.562.0",
         "react-joyride": "^2.9.3",
+        "react-spring": "^10.0.3",
         "recharts": "^3.7.0"
     }
 }

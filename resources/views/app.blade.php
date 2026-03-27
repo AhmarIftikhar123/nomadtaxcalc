@@ -39,11 +39,7 @@
 
     {{-- Schema.org Structured Data (JSON-LD) --}}
     @if($schema)
-    <script type="application/ld+json">
-        {
-            !!$schema!!
-        }
-    </script>
+    <script type="application/ld+json">{!! $schema !!}</script>
     @endif
 
     <!-- Fonts -->

@@ -27,9 +27,9 @@ export default function DestinationsSection({ destinations }) {
             className="px-6 py-20 bg-white dark:bg-dark-elevated lg:px-40"
         >
             <div className="max-w-[960px] mx-auto">
-                <div className="flex justify-between items-end mb-10">
-                    <div>
-                        <h2 className="text-primary dark:text-white text-[32px] font-bold leading-tight tracking-[-0.015em]">
+                <div className="flex md:justify-between flex-col md:flex-row justify-center items-center md:items-end mb-10 gap-4">
+                    <div className="text-center md:text-left">
+                        <h2 className="text-primary dark:text-white text-[32px] font-bold leading-tight tracking-[-0.015em] ">
                             Popular Destinations
                         </h2>
                         <p className="text-gray dark:text-gray-400 mt-2">
@@ -38,7 +38,7 @@ export default function DestinationsSection({ destinations }) {
                         </p>
                     </div>
                     <Link href={route("tax-calculator.index")} className="px-4 py-2 text-sm font-semibold border border-primary dark:border-white rounded-lg hover:bg-primary hover:text-white dark:hover:bg-white dark:hover:text-primary transition-colors">
-                        View All 150+
+                        150+ Destinations
                     </Link>
                 </div>
 

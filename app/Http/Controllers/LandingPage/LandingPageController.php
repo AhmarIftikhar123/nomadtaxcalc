@@ -137,9 +137,10 @@ class LandingPageController extends Controller
             ],
             [
                 'id' => 3,
-                'title' => 'US FEIE Calculator',
-                'description' => 'Specialized Foreign Earned Income Exclusion tools for American expats to maximize savings legally.',
-                'icon' => 'payments',
+                'title' => 'Business Structure Optimizer',
+                'description' => 'Side-by-side tax burden comparison for Sole Proprietor vs. LLC vs. S-Corp structures, specifically modeled for the digital nomad income profile and travel pattern.',
+                'icon' => 'business',
+                'coming_soon' => true,
             ],
         ];
     }
@@ -153,19 +154,19 @@ class LandingPageController extends Controller
             [
                 'id' => 1,
                 'title' => 'Enter Your Income',
-                'description' => 'Input your global earnings, income sources, and current tax residency status. Our engine handles multi-currency conversions automatically.',
+                'description' => 'Add your annual gross income, pick your currency, and choose your tax year. Select your country of citizenship and home state — we handle multi-currency conversions automatically.',
                 'icon' => 'payments',
             ],
             [
                 'id' => 2,
                 'title' => 'Add Countries',
-                'description' => 'Select up to 5 destinations from our database of 150+ countries. Compare tax brackets, social security contributions, and digital nomad visa costs side-by-side.',
+                'description' => 'Tell us where you lived this year and for how many days. We instantly track your 183-day threshold per country, show your residency status, and let you add custom local taxes.',
                 'icon' => 'public',
             ],
             [
                 'id' => 3,
                 'title' => 'Get Your Strategy',
-                'description' => 'Receive a comprehensive breakdown of your projected net income, local tax obligations, and a step-by-step visa application guide in one PDF.',
+                'description' => 'See your total tax liability, effective rate, net income, applied treaties, FEIE eligibility, residency warnings, and smart optimization recommendations — all in one report.',
                 'icon' => 'description',
             ],
         ];

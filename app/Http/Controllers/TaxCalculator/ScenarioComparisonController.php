@@ -9,6 +9,7 @@ use App\Models\TaxType;
 use App\Services\SeoService;
 use App\Services\TaxCalculator\ScenarioComparisonService;
 use App\Services\TaxCalculator\TaxCalculatorService;
+use App\Http\Requests\TaxCalculator\ScenarioComparisonRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -58,13 +59,8 @@ class ScenarioComparisonController extends Controller
     /**
      * Run both scenarios through the tax pipeline and return JSON.
      */
-    public function compare(Request $request): JsonResponse
+    public function compare(ScenarioComparisonRequest $request): JsonResponse
     {
-        $request->validate([
-            'step1'      => 'required|array',
-            'scenarioA'  => 'required|array',
-            'scenarioB'  => 'required|array',
-        ]);
 
         try {
             $result = $this->comparisonService->compare(

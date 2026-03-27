@@ -29,8 +29,11 @@ export default function TestimonialsSection({ testimonials }) {
             className="bg-light dark:bg-dark-surface px-6 py-24 lg:px-40"
         >
             <div className="max-w-[960px] mx-auto">
+                <h2 className="text-green-400 dark:text-white text-[22px] font-medium leading-tight tracking-[-0.015em] mb-4 text-center">
+                    What Users Say
+                </h2>
                 <h2 className="text-primary dark:text-white text-[32px] font-bold text-center mb-16">
-                    What Our Users Say
+                    Nomads who stopped guessing
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

@@ -70,3 +70,34 @@ body {
 .font-display {
     font-family: "Plus Jakarta Sans", sans-serif;
 }
+
+/* Globe Component Styles */
+.globe-wrapper {
+    @apply relative w-full max-w-[480px] aspect-square;
+}
+
+.globe-canvas {
+    @apply w-full h-full opacity-0 transition-opacity duration-[800ms] ease-in-out relative z-10 touch-none rounded-full;
+}
+
+.cobe-marker-base {
+    position: absolute;
+    bottom: anchor(top);
+    left: anchor(center);
+    translate: -50% -8px;
+    transition: opacity 0.15s ease;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px 3px 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.93);
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    backdrop-filter: blur(10px);
+    color: #222;
+    letter-spacing: 0.2px;
+}

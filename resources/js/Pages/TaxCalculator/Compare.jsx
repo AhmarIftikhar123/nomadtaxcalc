@@ -11,7 +11,7 @@ import ComparisonMetrics from "@/Components/ScenarioComparison/ComparisonMetrics
 import TaxByCountryBars from "@/Components/ScenarioComparison/TaxByCountryBars";
 import ComparisonTable from "@/Components/ScenarioComparison/ComparisonTable";
 import ResidencyRiskComparison from "@/Components/ScenarioComparison/ResidencyRiskComparison";
-import SmartRecommendations from "@/Components/TaxCalculator/SmartRecommendations";
+// import SmartRecommendations from "@/Components/TaxCalculator/SmartRecommendations";
 import Tooltip from "@/Components/Ui/Tooltip";
 import { Zap, Loader2, Printer, ArrowLeft, HelpCircle } from "lucide-react";
 import web from "@/libs/axios";
@@ -163,7 +163,12 @@ export default function Compare({
         } catch (error) {
             console.error(error);
 
-            if (error.response) {
+            if (error.response?.status === 422 && error.response.data?.errors) {
+                // Handle validation errors from ScenarioComparisonRequest
+                const errors = error.response.data.errors;
+                const errorMessages = Object.values(errors).flat().join(" ");
+                setError(errorMessages);
+            } else if (error.response) {
                 // Server responded but with error status
                 setError(
                     error.response.data?.message ||
@@ -464,12 +469,12 @@ export default function Compare({
                         />
 
                         {/* Recommendations from winner */}
-                        {winnerResult?.recommendations?.length > 0 && (
+                        {/* {winnerResult?.recommendations?.length > 0 && (
                             <SmartRecommendations
                                 recommendations={winnerResult.recommendations}
                                 currency={currency}
                             />
-                        )}
+                        )} */}
 
                         {/* Action buttons */}
                         <div className="flex flex-col sm:flex-row gap-3">

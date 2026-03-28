@@ -12,7 +12,7 @@ export default function FeaturesSection({ features }) {
     return (
         <section
             id="features"
-            className="w-full bg-white py-20 px-6 md:px-20 lg:px-40"
+            className="w-full bg-white py-20 px-6 md:px-20 lg:px-40 stack-card"
         >
             <div className="max-w-[1200px] mx-auto">
                 {/* Section Header */}

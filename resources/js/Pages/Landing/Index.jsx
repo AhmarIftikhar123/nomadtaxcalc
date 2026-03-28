@@ -7,6 +7,7 @@ import ScenarioComparisonSection from "@/Components/Landing/ScenarioComparisonSe
 import HowItWorksSection from "@/Components/Landing/HowItWorksSection";
 import DestinationsSection from "@/Components/Landing/DestinationsSection";
 import TestimonialsSection from "@/Components/Landing/TestimonialsSection";
+import useStackedCards from "@/hooks/useStackedCards";
 
 export default function LandingPage({
     features,
@@ -14,28 +15,34 @@ export default function LandingPage({
     testimonials,
     howItWorks,
 }) {
+    const { container, landingPageWrapper, landingPageContent } =
+        useStackedCards();
     return (
         <>
             <Head title="NomadTax - Calculate Your Digital Nomad Taxes" />
 
-            <LandingLayout>
+            <LandingLayout
+                wrapper={landingPageWrapper}
+                content={landingPageContent}
+            >
                 {/* Hero Section */}
                 <HeroSection />
-
                 {/* How It Works Section */}
                 <HowItWorksSection howItWorks={howItWorks} />
 
-                {/* Features Section */}
-                <FeaturesSection features={features} />
+                <main ref={container}>
+                    {/* Features Section */}
+                    <FeaturesSection features={features} />
 
-                {/* Scenario Comparison Section */}
-                <ScenarioComparisonSection />
+                    {/* Scenario Comparison Section */}
+                    <ScenarioComparisonSection />
 
-                {/* Destinations Section */}
-                <DestinationsSection destinations={destinations} />
+                    {/* Destinations Section */}
+                    <DestinationsSection destinations={destinations} />
 
-                {/* Testimonials Section */}
-                <TestimonialsSection testimonials={testimonials} />
+                    {/* Testimonials Section */}
+                    <TestimonialsSection testimonials={testimonials} />
+                </main>
             </LandingLayout>
         </>
     );

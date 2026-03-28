@@ -3,7 +3,7 @@ import { Trophy } from "lucide-react";
 
 export default function ScenarioComparisonSection() {
     return (
-        <section className="w-full bg-white dark:bg-dark py-20 px-6 md:px-20 lg:px-40">
+        <section className="w-full bg-white dark:bg-dark py-20 px-6 md:px-20 lg:px-40 stack-card">
             {/* Outer Wrapper (Light Gray Box) */}
             <div className="max-w-[1024px] mx-auto bg-[#faf9f8] dark:bg-dark-surface rounded-[32px] p-6 lg:p-12 flex flex-col gap-10 shadow-sm border border-black/5 dark:border-white/5">
                 

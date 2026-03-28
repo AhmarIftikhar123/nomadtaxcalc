@@ -26,7 +26,7 @@ export default function TestimonialsSection({ testimonials }) {
     return (
         <section
             id="testimonials"
-            className="bg-light dark:bg-dark-surface px-6 py-24 lg:px-40"
+            className="bg-light dark:bg-dark-surface px-6 py-24 lg:px-40 stack-card"
         >
             <div className="max-w-[960px] mx-auto">
                 <h2 className="text-green-400 dark:text-white text-[22px] font-medium leading-tight tracking-[-0.015em] mb-4 text-center">

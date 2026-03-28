@@ -24,7 +24,7 @@ export default function DestinationsSection({ destinations }) {
     return (
         <section
             id="destinations"
-            className="px-6 py-20 bg-white dark:bg-dark-elevated lg:px-40"
+            className="px-6 py-20 bg-white dark:bg-dark-elevated lg:px-40 stack-card"
         >
             <div className="max-w-[960px] mx-auto">
                 <div className="flex md:justify-between flex-col md:flex-row justify-center items-center md:items-end mb-10 gap-4">

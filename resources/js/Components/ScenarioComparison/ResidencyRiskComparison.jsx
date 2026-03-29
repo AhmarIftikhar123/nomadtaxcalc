@@ -26,14 +26,10 @@ export default function ResidencyRiskComparison({ resultA, resultB }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Scenario A */}
-                <div
-                    className={`rounded-xl border ${hasRisksA ? "border-red-200 bg-red-50/50" : "border-green-200 bg-green-50/50"} p-1`}
-                >
-                    <div
-                        className={`text-xs font-extrabold uppercase tracking-wider px-4 py-2 rounded-t-lg ${hasRisksA ? "text-red-600" : "text-green-700"}`}
-                    >
-                        Scenario A —{" "}
-                        {hasRisksA ? "Active Risks" : "Clean Profile"}
+                <div className="bg-white rounded-xl border border-border-gray p-1 shadow-sm">
+                    <div className="text-xs font-extrabold uppercase tracking-wider px-4 py-2 rounded-t-lg text-primary flex items-center justify-between">
+                        <span>Scenario A — {hasRisksA ? "Active Risks" : "Clean Profile"}</span>
+                        {hasRisksA && <span className="w-2 h-2 rounded-full bg-red-500"></span>}
                     </div>
                     <div className="p-2">
                         {dataA.length > 0 ? (
@@ -47,14 +43,10 @@ export default function ResidencyRiskComparison({ resultA, resultB }) {
                 </div>
 
                 {/* Scenario B */}
-                <div
-                    className={`rounded-xl border ${hasRisksB ? "border-red-200 bg-red-50/50" : "border-green-200 bg-green-50/50"} p-1`}
-                >
-                    <div
-                        className={`text-xs font-extrabold uppercase tracking-wider px-4 py-2 rounded-t-lg ${hasRisksB ? "text-red-600" : "text-green-700"}`}
-                    >
-                        Scenario B —{" "}
-                        {hasRisksB ? "Active Risks" : "Clean Profile"}
+                <div className="bg-white rounded-xl border border-border-gray p-1 shadow-sm">
+                    <div className="text-xs font-extrabold uppercase tracking-wider px-4 py-2 rounded-t-lg text-primary flex items-center justify-between">
+                        <span>Scenario B — {hasRisksB ? "Active Risks" : "Clean Profile"}</span>
+                        {hasRisksB && <span className="w-2 h-2 rounded-full bg-red-500"></span>}
                     </div>
                     <div className="p-2">
                         {dataB.length > 0 ? (

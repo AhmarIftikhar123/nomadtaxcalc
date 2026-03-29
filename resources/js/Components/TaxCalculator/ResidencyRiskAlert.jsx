@@ -40,14 +40,14 @@ export default function ResidencyRiskAlert({ residencyData }) {
 
             {/* Citizenship-based taxation */}
             {citizenshipBased.map(country => (
-                <div key={country.country_id} className="rounded-xl p-6 md:p-8 border-l-4 bg-red-50 border-red-500">
+                <div key={country.country_id} className="rounded-xl p-6 md:p-8 bg-white border border-border-gray shadow-sm">
                     <div className="flex items-start gap-4">
                         <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
                         <div>
-                            <h3 className="text-lg font-bold text-red-700 mb-2">
+                            <h3 className="text-lg font-bold text-primary mb-2">
                                 Citizenship-Based Taxation — {country.country_name}
                             </h3>
-                            <p className="text-sm text-red-700">
+                            <p className="text-sm text-gray">
                                 As a citizen of {country.country_name}, you owe tax on 
                                 worldwide income regardless of where you live.
                             </p>
@@ -62,17 +62,17 @@ export default function ResidencyRiskAlert({ residencyData }) {
                 const daysOver = days - country.threshold;
                 const isBarelyResident = daysOver <= 14;
                 return (
-                    <div key={country.country_id} className="rounded-xl p-6 md:p-8 border-l-4 bg-red-50 border-red-500">
+                    <div key={country.country_id} className="rounded-xl p-6 md:p-8 bg-white border border-border-gray shadow-sm">
                         <div className="flex items-start gap-4">
                             <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
                             <div>
-                                <h3 className="text-lg font-bold text-red-700 mb-2">
+                                <h3 className="text-lg font-bold text-primary mb-2">
                                     {isBarelyResident 
                                         ? `Barely Tax Resident — ${country.country_name}`
                                         : `Confirmed Tax Resident — ${country.country_name}`
                                     }
                                 </h3>
-                                <p className="text-sm text-red-700">
+                                <p className="text-sm text-gray">
                                     You spent <strong>{country.days_spent} days</strong> in {country.country_name}, 
                                     exceeding the {country.threshold}-day threshold by <strong>{daysOver} days</strong>. 
                                     {isBarelyResident 
@@ -90,14 +90,14 @@ export default function ResidencyRiskAlert({ residencyData }) {
             {nearThreshold.map(country => {
                 const daysRemaining = country.threshold - country.days_spent;
                 return (
-                    <div key={country.country_id} className="rounded-xl p-6 md:p-8 border-l-4 bg-yellow-50 border-yellow-500">
+                    <div key={country.country_id} className="rounded-xl p-6 md:p-8 bg-white border border-border-gray shadow-sm">
                         <div className="flex items-start gap-4">
                             <AlertTriangle className="w-6 h-6 text-yellow-600 flex-shrink-0" />
                             <div>
-                                <h3 className="text-lg font-bold text-yellow-800 mb-2">
+                                <h3 className="text-lg font-bold text-primary mb-2">
                                     Residency Warning — {country.country_name}
                                 </h3>
-                                <p className="text-sm text-yellow-700">
+                                <p className="text-sm text-gray">
                                     You spent <strong>{country.days_spent} days</strong> in {country.country_name}. 
                                     Only <strong>{daysRemaining} days remaining</strong> before you trigger 
                                     the {country.threshold}-day tax residency threshold.
@@ -112,14 +112,14 @@ export default function ResidencyRiskAlert({ residencyData }) {
             {safeNonResidents.map(country => {
                 const daysRemaining = country.threshold - country.days_spent;
                 return (
-                    <div key={country.country_id} className="rounded-xl p-6 md:p-8 border-l-4 bg-gray-50 border-gray-300">
+                    <div key={country.country_id} className="rounded-xl p-6 md:p-8 bg-white border border-border-gray shadow-sm">
                         <div className="flex items-start gap-4">
                             <ShieldCheck className="w-6 h-6 text-gray-500 flex-shrink-0" />
                             <div>
-                                <h3 className="text-lg font-bold text-gray-700 mb-2">
+                                <h3 className="text-lg font-bold text-primary mb-2">
                                     Non-Resident — {country.country_name}
                                 </h3>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-gray">
                                     You spent <strong>{country.days_spent} days</strong> in {country.country_name} — 
                                     well below the {country.threshold}-day threshold 
                                     (<strong>{daysRemaining} days remaining</strong>). No tax residency triggered.
@@ -132,14 +132,14 @@ export default function ResidencyRiskAlert({ residencyData }) {
 
             {/* Zero-tax positive message */}
             {zeroTaxCountries.map(country => (
-                <div key={country.country_id} className="rounded-xl p-6 md:p-8 border-l-4 bg-green-50 border-green-500">
+                <div key={country.country_id} className="rounded-xl p-6 md:p-8 bg-white border border-border-gray shadow-sm">
                     <div className="flex items-start gap-4">
                         <ShieldCheck className="w-6 h-6 text-green-600 flex-shrink-0" />
                         <div>
-                            <h3 className="text-lg font-bold text-green-700 mb-2">
+                            <h3 className="text-lg font-bold text-primary mb-2">
                                 No Income Tax — {country.country_name}
                             </h3>
-                            <p className="text-sm text-green-700">
+                            <p className="text-sm text-gray">
                                 You spent <strong>{country.days_spent} days</strong> in {country.country_name}, 
                                 which has no personal income tax. No additional liability here.
                             </p>

@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Head, Link, usePage } from "@inertiajs/react";
 import Joyride, { STATUS } from "react-joyride";
 import { useCompareTour } from "@/hooks/useCompareTour";
+import { useResultsTour } from "@/hooks/useResultsTour";
 import TaxCalculatorLayout from "@/Layouts/TaxCalculatorLayout";
 import ScenarioPanel from "@/Components/ScenarioComparison/ScenarioPanel";
 import WinnerBanner from "@/Components/ScenarioComparison/WinnerBanner";
@@ -51,13 +52,21 @@ export default function Compare({
     // ─── Onboarding Tour (Comparison) ─────────────────────────────
     // isDefault: true if user hasn't set their actual profile data
     const isDefaultData = !prefillStep1 || !prefillStep1.citizenship_country_id;
-    const { 
-        steps: tourSteps, 
-        tourActive, 
-        tourKey, 
-        startTour, 
-        handleTourCallback 
+    const {
+        steps: tourSteps,
+        tourActive,
+        tourKey,
+        startTour,
+        handleTourCallback,
     } = useCompareTour(isDefaultData);
+
+    const {
+        steps: resultsTourSteps,
+        tourActive: resultsTourActive,
+        tourKey: resultsTourKey,
+        startResultsTour,
+        handleTourCallback: handleResultsTourCallback,
+    } = useResultsTour();
 
     // ── Step 1 state (shared between both scenarios) ─────────────────────────
     const [step1, setStep1] = useState(() => {
@@ -160,6 +169,11 @@ export default function Compare({
             // console.log(response);
             setResults(response.data);
             setActiveTab("Results");
+            
+            // Fire results tour shortly after tab switch
+            setTimeout(() => {
+                startResultsTour();
+            }, 600);
         } catch (error) {
             console.error(error);
 
@@ -208,12 +222,56 @@ export default function Compare({
         periodsB.length > 0 &&
         step1.citizenship_country_id &&
         step1.annual_income > 0;
+    const joyrideStyles = {
+        options: {
+            primaryColor: "#1a1a2e",
+            zIndex: 10000,
+            arrowColor: "#fff",
+            backgroundColor: "#fff",
+            textColor: "#374151",
+            overlayColor: "rgba(0,0,0,0.45)",
+        },
+        tooltip: {
+            borderRadius: "12px",
+            padding: "20px 24px",
+            fontFamily: "inherit",
+            fontSize: "14px",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+        },
+        tooltipTitle: {
+            fontSize: "15px",
+            fontWeight: "700",
+            marginBottom: "8px",
+            color: "#1a1a2e",
+        },
+        buttonNext: {
+            backgroundColor: "#1a1a2e",
+            color: "#fff",
+            borderRadius: "8px",
+            padding: "8px 18px",
+            fontWeight: "600",
+            fontSize: "13px",
+        },
+        buttonBack: {
+            color: "#6b7280",
+            fontWeight: "600",
+            fontSize: "13px",
+        },
+        buttonSkip: {
+            color: "#9ca3af",
+            fontSize: "12px",
+        },
+        buttonClose: {
+            top: "12px",
+            right: "12px",
+        },
+    };
 
     return (
         <TaxCalculatorLayout title="Compare Scenarios">
             <Head title="Compare Scenarios" />
 
-            {/* ─── React Joyride (Comparison) ────────────────── */}
+            {/* ─── React Joyride (Comparison Builder) ────────────────── */}
             <Joyride
                 key={tourKey}
                 steps={tourSteps}
@@ -230,50 +288,20 @@ export default function Compare({
                         handleTourCallback(data);
                     }
                 }}
-                styles={{
-                    options: {
-                        primaryColor: "#1a1a2e",
-                        zIndex: 10000,
-                        arrowColor: "#fff",
-                        backgroundColor: "#fff",
-                        textColor: "#374151",
-                        overlayColor: "rgba(0,0,0,0.45)",
-                    },
-                    tooltip: {
-                        borderRadius: "12px",
-                        padding: "20px 24px",
-                        fontFamily: "inherit",
-                        fontSize: "14px",
-                        boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-                    },
-                    tooltipTitle: {
-                        fontSize: "15px",
-                        fontWeight: "700",
-                        marginBottom: "8px",
-                        color: "#1a1a2e",
-                    },
-                    buttonNext: {
-                        backgroundColor: "#1a1a2e",
-                        color: "#fff",
-                        borderRadius: "8px",
-                        padding: "8px 18px",
-                        fontWeight: "600",
-                        fontSize: "13px",
-                    },
-                    buttonBack: {
-                        color: "#6b7280",
-                        fontWeight: "600",
-                        fontSize: "13px",
-                    },
-                    buttonSkip: {
-                        color: "#9ca3af",
-                        fontSize: "12px",
-                    },
-                    buttonClose: {
-                        top: "12px",
-                        right: "12px",
-                    },
-                }}
+                styles={joyrideStyles}
+            />
+
+            {/* ─── React Joyride (Results Phase) ─────────────────────── */}
+            <Joyride
+                key={`rt-${resultsTourKey}`}
+                steps={resultsTourSteps}
+                run={resultsTourActive}
+                continuous
+                scrollToFirstStep
+                showProgress
+                showSkipButton
+                callback={handleResultsTourCallback}
+                styles={joyrideStyles}
             />
 
             <div className="max-w-7xl mx-auto space-y-6">
@@ -281,7 +309,10 @@ export default function Compare({
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex items-start gap-4">
                         <div data-tour="compare-back" className="mt-0.5">
-                            <Tooltip text="Back to Previous Step" position="bottom">
+                            <Tooltip
+                                text="Back to Previous Step"
+                                position="bottom"
+                            >
                                 <Link
                                     href={route("tax-calculator.index", {
                                         scenario_comparison: "true",
@@ -449,25 +480,38 @@ export default function Compare({
                     <div
                         className={`space-y-6 ${activeTab !== "Results" ? "hidden md:block" : ""}`}
                     >
-                        <WinnerBanner diff={results.diff} currency={currency} />
-                        <ComparisonMetrics
-                            resultA={results.resultA}
-                            resultB={results.resultB}
-                            diff={results.diff}
-                            currency={currency}
-                        />
-                        <TaxByCountryBars
-                            perCountry={results.diff?.perCountry || []}
-                            currency={currency}
-                        />
-                        <ComparisonTable
-                            perCountry={results.diff?.perCountry || []}
-                            resultA={results.resultA}
-                            resultB={results.resultB}
-                            diff={results.diff}
-                            currency={currency}
-                        />
-
+                        <div data-tour="results-summary" className="space-y-6">
+                            <WinnerBanner diff={results.diff} currency={currency} />
+                            <ComparisonMetrics
+                                resultA={results.resultA}
+                                resultB={results.resultB}
+                                diff={results.diff}
+                                currency={currency}
+                            />
+                            <TaxByCountryBars
+                                perCountry={results.diff?.perCountry || []}
+                                currency={currency}
+                            />
+                            <ComparisonTable
+                                perCountry={results.diff?.perCountry || []}
+                                resultA={results.resultA}
+                                resultB={results.resultB}
+                                diff={results.diff}
+                                currency={currency}
+                            />
+                        </div>
+                        {/* ── RISK TAB (mobile only, desktop shows inline) ────────── */}
+                        {results && (
+                            <div
+                                data-tour="results-risk"
+                                className={`${activeTab !== "Risk" ? "hidden md:block" : ""}`}
+                            >
+                                <ResidencyRiskComparison
+                                    resultA={results.resultA}
+                                    resultB={results.resultB}
+                                />
+                            </div>
+                        )}
                         {/* Recommendations from winner */}
                         {/* {winnerResult?.recommendations?.length > 0 && (
                             <SmartRecommendations
@@ -500,18 +544,6 @@ export default function Compare({
                                 </a>
                             </Tooltip>
                         </div>
-                    </div>
-                )}
-
-                {/* ── RISK TAB (mobile only, desktop shows inline) ────────── */}
-                {results && (
-                    <div
-                        className={`${activeTab !== "Risk" ? "hidden md:block" : ""}`}
-                    >
-                        <ResidencyRiskComparison
-                            resultA={results.resultA}
-                            resultB={results.resultB}
-                        />
                     </div>
                 )}
             </div>

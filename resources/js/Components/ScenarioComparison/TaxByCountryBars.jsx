@@ -58,9 +58,9 @@ export default function TaxByCountryBars({
                         </p>
 
                         {/* Bar A */}
-                        <div className="flex items-center gap-3 mb-1.5">
-                            <div className="flex-1 bg-light rounded-full h-7 overflow-hidden">
-                                {c.daysA !== null && c.daysA !== undefined ? (
+                        {c.daysA !== null && c.daysA !== undefined && (
+                            <div className="flex items-center gap-3 mb-1.5">
+                                <div className="flex-1 bg-light rounded-full h-7 overflow-hidden">
                                     <div
                                         className="bg-primary h-full rounded-full flex items-center px-3 transition-all duration-500"
                                         style={{
@@ -73,23 +73,17 @@ export default function TaxByCountryBars({
                                                 : ""}
                                         </span>
                                     </div>
-                                ) : (
-                                    <div className="h-full flex items-center px-3">
-                                        <span className="text-[11px] font-medium text-gray">
-                                            N/A
-                                        </span>
-                                    </div>
-                                )}
+                                </div>
+                                <span className="text-[10px] text-gray w-36 text-right flex-shrink-0">
+                                    A — {residencyLabel(c.daysA, c.residentA)}
+                                </span>
                             </div>
-                            <span className="text-[10px] text-gray w-36 text-right flex-shrink-0">
-                                A — {residencyLabel(c.daysA, c.residentA)}
-                            </span>
-                        </div>
+                        )}
 
                         {/* Bar B */}
-                        <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-light rounded-full h-7 overflow-hidden">
-                                {c.daysB !== null && c.daysB !== undefined ? (
+                        {c.daysB !== null && c.daysB !== undefined && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 bg-light rounded-full h-7 overflow-hidden">
                                     <div
                                         className="bg-gray h-full rounded-full flex items-center px-3 transition-all duration-500"
                                         style={{
@@ -102,18 +96,12 @@ export default function TaxByCountryBars({
                                                 : "$0"}
                                         </span>
                                     </div>
-                                ) : (
-                                    <div className="h-full flex items-center px-3">
-                                        <span className="text-[11px] font-medium text-gray">
-                                            N/A
-                                        </span>
-                                    </div>
-                                )}
+                                </div>
+                                <span className="text-[10px] text-gray w-36 text-right flex-shrink-0">
+                                    B — {residencyLabel(c.daysB, c.residentB)}
+                                </span>
                             </div>
-                            <span className="text-[10px] text-gray w-36 text-right flex-shrink-0">
-                                B — {residencyLabel(c.daysB, c.residentB)}
-                            </span>
-                        </div>
+                        )}
                     </div>
                 ))}
             </div>

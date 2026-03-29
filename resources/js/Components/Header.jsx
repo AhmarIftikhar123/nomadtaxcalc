@@ -23,7 +23,7 @@ export default function Header() {
                 {/* Desktop Navigation */}
                 <nav className="hidden md:flex items-center gap-2 lg:gap-8">
                     <Link
-                        href={route("home")}
+                        href={route("tax-calculator.index")}
                         className="text-sm font-semibold text-primary hover:text-gray transition-colors"
                     >
                         Calculator
@@ -34,12 +34,12 @@ export default function Header() {
                     >
                         About
                     </Link>
-                    <Link
-                        href="#"
+                    <a
+                        href="https://nomadtaxcalc.com/blog/how-to-use-nomadtaxcalc/"
                         className="text-sm font-semibold text-primary hover:text-gray transition-colors"
                     >
                         Resources
-                    </Link>
+                    </a>
                     <Link
                         href={route("contact")}
                         className="text-sm font-semibold text-primary hover:text-gray transition-colors"

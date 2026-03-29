@@ -289,7 +289,7 @@ export default function About() {
                             {/* Social Links */}
                             <div className="flex justify-center flex-wrap items-center gap-3">
                                 <a
-                                    href="#"
+                                    href="https://www.linkedin.com/in/ahmar-iftikhar/"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border-gray rounded-full text-sm font-semibold text-primary hover:border-gray transition-colors"
@@ -298,7 +298,7 @@ export default function About() {
                                     LinkedIn
                                 </a>
                                 <a
-                                    href="#"
+                                    href="https://github.com/AhmarIftikhar123"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border-gray rounded-full text-sm font-semibold text-primary hover:border-gray transition-colors"
@@ -307,7 +307,8 @@ export default function About() {
                                     GitHub
                                 </a>
                                 <a
-                                    href="mailto:coadersworldandais@gmail.com"
+                                    href="mailto:coadersworldandais@gmail.com?subject=Project Inquiry&body=Hi, I would like to discuss a project."
+                                    aria-label="Send email to coadersworldandais@gmail.com"
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-border-gray rounded-full text-sm font-semibold text-primary hover:border-gray transition-colors"
                                 >
                                     <Mail className="w-4 h-4" />
